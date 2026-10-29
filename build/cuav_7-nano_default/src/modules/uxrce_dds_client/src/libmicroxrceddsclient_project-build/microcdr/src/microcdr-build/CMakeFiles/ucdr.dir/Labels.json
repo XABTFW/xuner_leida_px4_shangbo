@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/CMakeFiles/ucdr"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/CMakeFiles/ucdr.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/CMakeFiles/ucdr-complete.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-build.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-configure.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-download.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-install.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-mkdir.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-patch.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"ucdr"
+		],
+		"name" : "ucdr"
+	}
+}

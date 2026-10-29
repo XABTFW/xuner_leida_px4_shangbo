@@ -1,0 +1,10 @@
+
+
+{
+		"fields": "\u0089 timestamp;\u008a x;\u008a y;\u008a z;\u008a vx;\u008a vy;\u008a vz;\u008a range;\u008a azimuth;\u008a elevation;\u0086 target_id;\u008c valid;\u0086[2] _padding0;",
+		"fields_total_length": 162,
+		"orb_ids": [206],
+		"main_orb_id": 206,
+		"dependencies": [],
+		"name": "px4/RadarTarget"
+}

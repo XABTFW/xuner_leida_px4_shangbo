@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/src/drivers/px4io/CMakeFiles/px4io_firmware_build"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/src/drivers/px4io/CMakeFiles/px4io_firmware_build.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/src/drivers/px4io/CMakeFiles/px4io_firmware_build-complete.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-build.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-configure.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-download.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-install.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-mkdir.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-patch.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"px4io_firmware_build"
+		],
+		"name" : "px4io_firmware_build"
+	}
+}

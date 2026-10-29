@@ -1,0 +1,8 @@
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/temp_install/microcdr-2.0.1/lib/libmicrocdr.a
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/temp_install/microcdr-2.0.1/include/ucdr/microcdr.h
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/temp_install/microcdr-2.0.1/include/ucdr/visibility.h
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/temp_install/microcdr-2.0.1/include/ucdr/config.h
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/temp_install/microcdr-2.0.1/share/microcdr/cmake/microcdrTargets.cmake
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/temp_install/microcdr-2.0.1/share/microcdr/cmake/microcdrTargets-minsizerel.cmake
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/temp_install/microcdr-2.0.1/share/microcdr/cmake/microcdrConfig.cmake
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/temp_install/microcdr-2.0.1/share/microcdr/cmake/microcdrConfigVersion.cmake

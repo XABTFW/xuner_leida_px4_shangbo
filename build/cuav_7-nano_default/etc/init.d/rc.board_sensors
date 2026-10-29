@@ -1,0 +1,22 @@
+if param compare -s ADC_ADS1115_EN 1
+then
+ads1115 start -X
+board_adc start -n
+else
+board_adc start
+fi
+iim42652 -s -R 22 start
+bmi088 -A -R 29 -s start
+if ! bmi088 -G -R 29 -s start
+then
+iim42653 -s -b 2 -R 22 start
+fi
+if ! ist8310 -I -R 18 start
+then
+iis2mdc -I -R 37 start
+fi
+bmp581 -s start
+icp201xx -I start
+pwm_voltage_apply
+ist8310 -X -b 1 -R 10 start
+netman update

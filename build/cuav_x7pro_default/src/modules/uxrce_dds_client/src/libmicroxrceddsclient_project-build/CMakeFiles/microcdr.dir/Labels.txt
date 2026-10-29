@@ -1,0 +1,13 @@
+# Target labels
+ microcdr
+# Source files and their labels
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/CMakeFiles/microcdr
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/CMakeFiles/microcdr.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/CMakeFiles/microcdr-complete.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-stamp/microcdr-build.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-stamp/microcdr-configure.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-stamp/microcdr-download.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-stamp/microcdr-install.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-stamp/microcdr-mkdir.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-stamp/microcdr-patch.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-stamp/microcdr-update.rule

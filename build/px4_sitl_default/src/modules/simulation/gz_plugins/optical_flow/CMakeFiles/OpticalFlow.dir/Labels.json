@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/simulation/gz_plugins/optical_flow/CMakeFiles/OpticalFlow"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/simulation/gz_plugins/optical_flow/CMakeFiles/OpticalFlow.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/simulation/gz_plugins/optical_flow/CMakeFiles/OpticalFlow-complete.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/OpticalFlow/src/OpticalFlow-stamp/OpticalFlow-build.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/OpticalFlow/src/OpticalFlow-stamp/OpticalFlow-configure.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/OpticalFlow/src/OpticalFlow-stamp/OpticalFlow-download.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/OpticalFlow/src/OpticalFlow-stamp/OpticalFlow-install.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/OpticalFlow/src/OpticalFlow-stamp/OpticalFlow-mkdir.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/OpticalFlow/src/OpticalFlow-stamp/OpticalFlow-patch_disconnected.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/OpticalFlow/src/OpticalFlow-stamp/OpticalFlow-update_disconnected.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"OpticalFlow"
+		],
+		"name" : "OpticalFlow"
+	}
+}

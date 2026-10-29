@@ -1,0 +1,13 @@
+board_adc start
+if ver hwtypecmp V6C000002 V6C002002
+then
+bmi088 -A -R 4 -s start
+bmi088 -G -R 4 -s start
+else
+bmi055 -A -R 4 -s start
+bmi055 -G -R 4 -s start
+fi
+icm42688p -R 6 -s start
+ms5611 -X -b 4 -a 0x77 start
+ist8310 -X -b 4 -a 0xc  start
+ist8310 -X -b 1 -R 10 start

@@ -1,0 +1,7 @@
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/CMakeFiles/microxrcedds_client.dir
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/CMakeFiles/edit_cache.dir
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/CMakeFiles/rebuild_cache.dir
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/CMakeFiles/list_install_components.dir
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/CMakeFiles/install.dir
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/CMakeFiles/install/local.dir
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/CMakeFiles/install/strip.dir

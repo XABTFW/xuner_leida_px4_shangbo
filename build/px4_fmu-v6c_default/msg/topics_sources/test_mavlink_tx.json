@@ -1,0 +1,10 @@
+
+
+{
+		"fields": "\u0089 timestamp;\u008a test3;\u0083 test2;\u0086 test1;\u0086[1] _padding0;",
+		"fields_total_length": 80,
+		"orb_ids": [257],
+		"main_orb_id": 257,
+		"dependencies": [],
+		"name": "px4/test_mavlink_tx"
+}

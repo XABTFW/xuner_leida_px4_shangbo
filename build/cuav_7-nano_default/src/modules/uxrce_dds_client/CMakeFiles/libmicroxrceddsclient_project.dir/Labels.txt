@@ -1,0 +1,13 @@
+# Target labels
+ libmicroxrceddsclient_project
+# Source files and their labels
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/CMakeFiles/libmicroxrceddsclient_project
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/CMakeFiles/libmicroxrceddsclient_project.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/CMakeFiles/libmicroxrceddsclient_project-complete.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-build.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-configure.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-download.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-install.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-mkdir.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-patch.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-update.rule

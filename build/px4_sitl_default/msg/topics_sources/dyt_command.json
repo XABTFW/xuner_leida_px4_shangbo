@@ -1,0 +1,10 @@
+
+
+{
+		"fields": "\u0089 timestamp;\u008b lat;\u008b lon;\u008a alt;\u008a rel_alt;\u008a roll_rad;\u008a pitch_rad;\u008a yaw_rad;\u008a airspeed_m_s;\u008a groundspeed_m_s;\u0083 param_x;\u0083 param_y;\u0086 command;\u0086 param3;\u0082 zoom_rate;\u0086[5] _padding0;",
+		"fields_total_length": 252,
+		"orb_ids": [43],
+		"main_orb_id": 43,
+		"dependencies": [],
+		"name": "px4/DytCommand"
+}

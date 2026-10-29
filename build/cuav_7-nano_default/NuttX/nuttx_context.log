@@ -1,0 +1,17 @@
+Create version.h
+CP: arch/dummy/Kconfig to /home/btfw/tpy/px4_net_communication/PX4_Network_communication/platforms/nuttx/NuttX/nuttx/arch/dummy/dummy_kconfig
+CP: boards/dummy/Kconfig to /home/btfw/tpy/px4_net_communication/PX4_Network_communication/platforms/nuttx/NuttX/nuttx/../../../../boards/cuav/7-nano/nuttx-config/Kconfig
+LN: platform/board to /home/btfw/tpy/px4_net_communication/PX4_Network_communication/platforms/nuttx/NuttX/apps/platform/dummy
+LN: include/arch to arch/arm/include
+LN: include/arch/board to /home/btfw/tpy/px4_net_communication/PX4_Network_communication/platforms/nuttx/NuttX/nuttx/../../../../boards/cuav/7-nano/nuttx-config/include
+LN: drivers/platform to /home/btfw/tpy/px4_net_communication/PX4_Network_communication/platforms/nuttx/NuttX/nuttx/drivers/dummy
+LN: include/arch/chip to /home/btfw/tpy/px4_net_communication/PX4_Network_communication/platforms/nuttx/NuttX/nuttx/arch/arm/include/stm32h7
+LN: arch/arm/src/chip to /home/btfw/tpy/px4_net_communication/PX4_Network_communication/platforms/nuttx/NuttX/nuttx/arch/arm/src/stm32h7
+LN: arch/arm/src/board to /home/btfw/tpy/px4_net_communication/PX4_Network_communication/platforms/nuttx/NuttX/nuttx/../../../../boards/cuav/7-nano/nuttx-config/src
+LN: platform/board to /home/btfw/tpy/px4_net_communication/PX4_Network_communication/platforms/nuttx/NuttX/apps/platform/dummy
+Register: sercon
+Register: serdis
+Register: renew
+Register: nsh
+Register: sh
+Register: ping

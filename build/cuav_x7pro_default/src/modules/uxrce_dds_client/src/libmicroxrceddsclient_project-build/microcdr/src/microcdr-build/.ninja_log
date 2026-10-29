@@ -1,0 +1,16 @@
+# ninja log v5
+0	18	1785207314843330800	ucdr-prefix/src/ucdr-stamp/ucdr-mkdir	7c03c93f02388f6c
+32	45	1785207314873330174	ucdr-prefix/src/ucdr-stamp/ucdr-update	bf2eeb53e9fa02
+0	18	1785207314843330800	/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-mkdir	7c03c93f02388f6c
+18	32	1785207314861330425	ucdr-prefix/src/ucdr-stamp/ucdr-download	a4456a57357c0d83
+18	32	1785207314861330425	/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-download	a4456a57357c0d83
+32	45	1785207314873330174	/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-update	bf2eeb53e9fa02
+45	55	1785207314885329924	ucdr-prefix/src/ucdr-stamp/ucdr-patch	3d49a1a72fcb7e2b
+45	55	1785207314885329924	/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-build/microcdr/src/microcdr-build/ucdr-prefix/src/ucdr-stamp/ucdr-patch	3d49a1a72fcb7e2b
+8	72	1785207315005327422	CMakeFiles/microcdr.dir/src/c/types/string.c.obj	26a1a084fd2b9e56
+0	78	1785207315011327297	CMakeFiles/microcdr.dir/src/c/common.c.obj	24dda4db7260093f
+9	174	1785207315106325318	CMakeFiles/microcdr.dir/src/c/types/sequence.c.obj	73a318b80ee783d0
+4	280	1785207315213323088	CMakeFiles/microcdr.dir/src/c/types/array.c.obj	8eb35dd8a45d41b2
+1	653	1785207315584315358	CMakeFiles/microcdr.dir/src/c/types/basic.c.obj	fbe2a7d318ac7284
+653	667	1785207315600315025	libmicrocdr.a	bf4ab557abe80f03
+0	7	0	CMakeFiles/install.util	656a4adf82c3379b

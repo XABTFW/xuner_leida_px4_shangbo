@@ -1,0 +1,13 @@
+# Target labels
+ gz
+# Source files and their labels
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/simulation/gz_bridge/CMakeFiles/gz
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/simulation/gz_bridge/CMakeFiles/gz.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/src/modules/simulation/gz_bridge/CMakeFiles/gz-complete.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/external/Stamp/gz/gz-build.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/external/Stamp/gz/gz-configure.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/external/Stamp/gz/gz-download.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/external/Stamp/gz/gz-install.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/external/Stamp/gz/gz-mkdir.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/external/Stamp/gz/gz-patch.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/external/Stamp/gz/gz-update.rule

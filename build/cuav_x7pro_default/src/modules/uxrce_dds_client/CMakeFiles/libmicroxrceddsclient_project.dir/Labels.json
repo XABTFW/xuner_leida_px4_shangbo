@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/CMakeFiles/libmicroxrceddsclient_project"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/CMakeFiles/libmicroxrceddsclient_project.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/CMakeFiles/libmicroxrceddsclient_project-complete.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-build.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-configure.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-download.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-install.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-mkdir.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-patch.rule"
+		},
+		{
+			"file" : "/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_x7pro_default/src/modules/uxrce_dds_client/src/libmicroxrceddsclient_project-stamp/libmicroxrceddsclient_project-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"libmicroxrceddsclient_project"
+		],
+		"name" : "libmicroxrceddsclient_project"
+	}
+}

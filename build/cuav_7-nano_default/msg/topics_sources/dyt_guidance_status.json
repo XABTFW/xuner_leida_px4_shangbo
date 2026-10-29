@@ -1,0 +1,10 @@
+
+
+{
+		"fields": "\u0089 timestamp;\u008a los_age_s;\u008a frame_dt_s;\u008a delay_s;\u008a[3] los_ned;\u008a[3] omega_los_ned;\u008a[3] velocity_sp;\u008a[3] acceleration_sp;\u008a yaw_sp;\u008a yaw_rate_sp;\u0086 state;\u0086 requested_submode;\u0086 active_submode;\u0086 lost_reason;\u008c active;\u008c target_locked;\u008c controlling_vehicle;\u008c target_fresh;\u008c intercept_allowed;\u0086[3] _padding0;",
+		"fields_total_length": 384,
+		"orb_ids": [44],
+		"main_orb_id": 44,
+		"dependencies": [],
+		"name": "px4/DytGuidanceStatus"
+}

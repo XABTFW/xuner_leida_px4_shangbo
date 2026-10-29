@@ -1,0 +1,18 @@
+Validating /home/btfw/tpy/px4_net_communication/PX4_Network_communication/src/modules/mavlink/mavlink/message_definitions/v1.0/development.xml
+Parsing /home/btfw/tpy/px4_net_communication/PX4_Network_communication/src/modules/mavlink/mavlink/message_definitions/v1.0/development.xml
+Validating /home/btfw/tpy/px4_net_communication/PX4_Network_communication/src/modules/mavlink/mavlink/message_definitions/v1.0/common.xml
+Parsing /home/btfw/tpy/px4_net_communication/PX4_Network_communication/src/modules/mavlink/mavlink/message_definitions/v1.0/common.xml
+FENCE_TYPE_ALL has invalid values (bitmask must have powers of 2)
+AUTOTUNE_AXIS_DEFAULT has invalid values (bitmask must have powers of 2)
+Validating /home/btfw/tpy/px4_net_communication/PX4_Network_communication/src/modules/mavlink/mavlink/message_definitions/v1.0/standard.xml
+Parsing /home/btfw/tpy/px4_net_communication/PX4_Network_communication/src/modules/mavlink/mavlink/message_definitions/v1.0/standard.xml
+BOOL_FALSE has invalid values (bitmask must have powers of 2)
+Validating /home/btfw/tpy/px4_net_communication/PX4_Network_communication/src/modules/mavlink/mavlink/message_definitions/v1.0/minimal.xml
+Parsing /home/btfw/tpy/px4_net_communication/PX4_Network_communication/src/modules/mavlink/mavlink/message_definitions/v1.0/minimal.xml
+Merged enum MAV_CMD
+Found 247 MAVLink message types in 4 XML files
+Generating C implementation in directory /home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/mavlink/development
+Generating C implementation in directory /home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/mavlink/common
+Generating C implementation in directory /home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/mavlink/standard
+Generating C implementation in directory /home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/mavlink/minimal
+Copying fixed headers for protocol 2.0 to /home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_sitl_default/mavlink

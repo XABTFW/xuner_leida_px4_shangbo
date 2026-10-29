@@ -1,0 +1,13 @@
+# Target labels
+ px4io_firmware_build
+# Source files and their labels
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/src/drivers/px4io/CMakeFiles/px4io_firmware_build
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/src/drivers/px4io/CMakeFiles/px4io_firmware_build.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/src/drivers/px4io/CMakeFiles/px4io_firmware_build-complete.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-build.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-configure.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-download.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-install.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-mkdir.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-patch.rule
+/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/px4_fmu-v5_default/external/Stamp/px4io_firmware_build/px4io_firmware_build-update.rule

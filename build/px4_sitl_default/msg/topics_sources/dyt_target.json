@@ -1,0 +1,10 @@
+
+
+{
+		"fields": "\u0089 timestamp;\u0089 timestamp_sample;\u0088 frame_counter;\u008a los_x_rad;\u008a los_y_rad;\u008a gimbal_roll_rad;\u008a gimbal_pitch_rad;\u008a gimbal_yaw_rad;\u008a gimbal_roll_rate_rad_s;\u008a gimbal_pitch_rate_rad_s;\u008a gimbal_yaw_rate_rad_s;\u008a bbox_width_px;\u008a bbox_height_px;\u008a range_m;\u008a zoom_ratio;\u008a frame_dt_s;\u008a last_rx_age_s;\u0087 parse_error_count;\u0086 tracking_state;\u0086 video_source;\u0086 tracking_algorithm;\u008c target_valid;\u008c auto_hint;\u008c image_enhance;\u008c recording;\u008c motor_on;\u008c follow_mode;\u008c laser_on;\u008c selftest_done;\u008c gyro_calib_failed;\u008c servo_fault;\u008c image_board_fault;\u0086 status1;\u0086 status2;\u0086 status3;\u0086 self_test_raw;",
+		"fields_total_length": 724,
+		"orb_ids": [46],
+		"main_orb_id": 46,
+		"dependencies": [],
+		"name": "px4/DytTarget"
+}

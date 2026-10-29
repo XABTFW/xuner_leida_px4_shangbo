@@ -1,0 +1,10 @@
+
+
+{
+		"fields": "\u0089 timestamp;\u008b lat;\u008b lon;\u0088 mission_id;\u008a alt;\u008a yaw;\u008a acceptance_radius;\u008a loiter_radius;\u008a time_inside;\u0087 total_count;\u0087 current_seq;\u0087 seq;\u0087 nav_cmd;\u0086 group_id;\u0086 leader_id;\u008c autocontinue;\u0086 sync_type;\u008c is_relay;\u0086[3] _padding0;",
+		"fields_total_length": 321,
+		"orb_ids": [248],
+		"main_orb_id": 248,
+		"dependencies": [],
+		"name": "px4/SwarmMissionItem"
+}

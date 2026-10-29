@@ -1,0 +1,10 @@
+
+
+{
+		"fields": "\u0089 timestamp;\u0088 start_swarm;\u0088 start_swarm_auto;\u0088 stop_swarm;\u0088 pause_swarm;\u0088 continue_swarm;\u0086[4] _padding0;",
+		"fields_total_length": 152,
+		"orb_ids": [250],
+		"main_orb_id": 250,
+		"dependencies": [],
+		"name": "px4/SwarmStartFlag"
+}

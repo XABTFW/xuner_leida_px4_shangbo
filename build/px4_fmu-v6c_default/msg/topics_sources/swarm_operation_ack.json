@@ -1,0 +1,10 @@
+
+
+{
+		"fields": "\u0089 timestamp;\u0088 old_value;\u0088 new_value;\u0086 target_system;\u0086 operation_type;\u0086 result;\u0086[5] _padding0;",
+		"fields_total_length": 138,
+		"orb_ids": [249],
+		"main_orb_id": 249,
+		"dependencies": [],
+		"name": "px4/SwarmOperationAck"
+}
