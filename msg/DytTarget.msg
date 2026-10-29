@@ -6,6 +6,11 @@ uint8 TRACKING_STATE_LOCKED = 1
 uint8 TRACKING_STATE_TIMEOUT = 2
 uint8 TRACKING_STATE_ERROR = 3
 
+uint8 SERVO_STATUS_UNKNOWN = 0
+uint8 SERVO_STATUS_ONLINE = 1
+uint8 SERVO_STATUS_TIMEOUT = 2
+uint8 SERVO_STATUS_DATA_ERROR = 3
+
 uint8 VIDEO_SOURCE_VIS_1 = 0
 uint8 VIDEO_SOURCE_VIS_2 = 1
 uint8 VIDEO_SOURCE_IR_1 = 2
@@ -39,15 +44,16 @@ float32 los_x_rad
 float32 los_y_rad
 
 float32 gimbal_roll_rad
-float32 gimbal_pitch_rad
+float32 gimbal_pitch_frame_rad  # pitch frame angle, V2 bytes 24-27 (1-based, big-endian float)
+float32 gimbal_pitch_rad  # same V2 pitch angle, retained for existing consumers
 float32 gimbal_yaw_rad
 
 float32 gimbal_roll_rate_rad_s
 float32 gimbal_pitch_rate_rad_s
 float32 gimbal_yaw_rate_rad_s
 
-float32 bbox_width_px
-float32 bbox_height_px
+float32 bbox_width_px  # target box width, V2 servo-status bytes 41-42 (1-based) (big-endian)
+float32 bbox_height_px # target box height, V2 servo-status bytes 43-44 (1-based) (big-endian)
 float32 range_m
 float32 zoom_ratio
 
@@ -55,7 +61,16 @@ float32 frame_dt_s
 float32 last_rx_age_s
 
 uint16 parse_error_count
-uint8 status1
+uint8 status1  # recognition status from protocol bytes 37-38: 100 detected, 0 not detected
 uint8 status2
 uint8 status3
 uint8 self_test_raw
+
+# Raw protocol fields required by the ground station.
+int16 miss_x_px  # azimuth miss, servo-status bytes 33-34, big-endian
+int16 miss_y_px  # elevation miss, servo-status bytes 35-36, big-endian
+uint8 servo_mode # servo-status byte 7: 0x00..0x0A or 0xAA
+uint8 servo_status
+
+bool software_version_valid
+char[8] tracker_software_version # tracker reply 0x35, raw 8-byte version

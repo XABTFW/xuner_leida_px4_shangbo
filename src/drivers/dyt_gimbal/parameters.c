@@ -264,3 +264,99 @@ PARAM_DEFINE_FLOAT(DYT_GEO_MNT_P, 0.f);
  * @group DYT Gimbal
  */
 PARAM_DEFINE_FLOAT(DYT_GEO_MNT_Y, 0.f);
+
+
+/**
+ * Tweety V2 manual pixel-angle scale
+ *
+ * Optional fixed conversion from one tracking miss-distance pixel to degrees.
+ * Set to 0 to derive the conversion from the live horizontal field of view and
+ * the configured image dimensions. A positive value overrides that dynamic
+ * conversion and should only be used for a fixed, calibrated zoom setting.
+ *
+ * @min 0
+ * @max 1
+ * @decimal 6
+ * @group DYT Gimbal
+ */
+PARAM_DEFINE_FLOAT(DYT_LOS_SC, 0.f);
+
+
+/**
+ * Visible tracking image width
+ *
+ * Width of the visible-light image used by the tracker. The Tweety V2.0.9.6
+ * tracking parameter table specifies a visible-light range up to 1920 pixels.
+ *
+ * @min 16
+ * @max 8192
+ * @group DYT Gimbal
+ */
+PARAM_DEFINE_INT32(DYT_VIS_W, 1920);
+
+
+/**
+ * Visible tracking image height
+ *
+ * Height of the visible-light image used by the tracker. The Tweety V2.0.9.6
+ * tracking parameter table specifies a visible-light range up to 1080 pixels.
+ *
+ * @min 16
+ * @max 8192
+ * @group DYT Gimbal
+ */
+PARAM_DEFINE_INT32(DYT_VIS_H, 1080);
+
+
+/**
+ * Infrared tracking image width
+ *
+ * Width of the infrared image used by the tracker. The Tweety V2.0.9.6
+ * tracking parameter table specifies an infrared range up to 1280 pixels.
+ *
+ * @min 16
+ * @max 8192
+ * @group DYT Gimbal
+ */
+PARAM_DEFINE_INT32(DYT_IR_W, 1280);
+
+
+/**
+ * Infrared tracking image height
+ *
+ * Height of the infrared image used by the tracker. The installed infrared
+ * tracker output is configured as 1280 x 720 pixels.
+ *
+ * @min 16
+ * @max 8192
+ * @group DYT Gimbal
+ */
+PARAM_DEFINE_INT32(DYT_IR_H, 720);
+
+
+/**
+ * Tweety V2 locked tracking value
+ *
+ * Raw value in byte 32 of the V2 servo status frame that represents a valid
+ * locked target. The protocol document defines the field as a char but does
+ * not list its enumeration.
+ *
+ * @min 0
+ * @max 255
+ * @group DYT Gimbal
+ */
+PARAM_DEFINE_INT32(DYT_TRK_VAL, 1);
+
+/**
+ * DYT tracking command protection window
+ *
+ * Ignore angle, home and scan commands briefly after a tracking request so
+ * existing pointing commands cannot immediately cancel the payload lock.
+ * A stop-track command remains effective during this window.
+ *
+ * @unit ms
+ * @min 100
+ * @max 10000
+ * @group DYT Gimbal
+ */
+PARAM_DEFINE_INT32(DYT_LOCK_MS, 2000);

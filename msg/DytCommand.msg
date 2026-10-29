@@ -18,12 +18,25 @@ uint8 CMD_SEARCH_RATE = 12
 uint8 CMD_SEND_OWNSHIP_STATE = 13
 uint8 CMD_GEO_TRACK = 14
 uint8 CMD_GEO_TRACK_EXIT = 15
+uint8 CMD_SET_INERTIAL_ANGLE = 16
+uint8 CMD_TRACK_POINT = 17
+uint8 CMD_AI_ENABLE = 18
+uint8 CMD_AI_DISABLE = 19
+uint8 CMD_TARGET_TYPE = 20
+uint8 CMD_ASSIST_ENABLE = 21
+uint8 CMD_ASSIST_DISABLE = 22
+uint8 CMD_TRACK_ID = 23
+uint8 CMD_IMAGE_MODE = 24
+uint8 CMD_OSD_ENABLE = 28
+uint8 CMD_OSD_DISABLE = 29
+uint8 CMD_DETECTION_START = 30
 
 uint8 command
 int16 param_x
 int16 param_y
 uint8 param3
 int8 zoom_rate
+uint32 value
 
 # Used by CMD_SEND_OWNSHIP_STATE and CMD_GEO_TRACK.
 float64 lat

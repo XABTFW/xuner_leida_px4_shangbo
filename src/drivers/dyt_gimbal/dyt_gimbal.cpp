@@ -4,15 +4,20 @@
  *
  ****************************************************************************/
 
-#include <fcntl.h>
-#include <termios.h>
-#include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <time.h>
+#include <unistd.h>
 
+#include "DytPixelLos.hpp"
+
+#include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
@@ -25,13 +30,9 @@
 #include <uORB/topics/dyt_status_reply.h>
 #include <uORB/topics/dyt_target.h>
 #include <uORB/topics/parameter_update.h>
-
-#include <lib/mathlib/mathlib.h>
-#include <matrix/matrix/math.hpp>
+#include <uORB/topics/vehicle_status.h>
 
 using namespace time_literals;
-using matrix::Dcmf;
-using matrix::Eulerf;
 
 class DytGimbal : public ModuleBase<DytGimbal>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -48,123 +49,165 @@ public:
 	void show_status();
 
 private:
-	static constexpr uint8_t FRAME_SYNC_1{0xEE};
-	static constexpr uint8_t FRAME_SYNC_2_TELEMETRY{0x16};
-	static constexpr uint8_t FRAME_SYNC_2_TARGET_GEO{0x18};
-	static constexpr uint8_t FRAME_SYNC_2_STATUS_REPLY{0x19};
-	static constexpr size_t FIXED_FRAME_LEN{32};
-	static constexpr size_t MAX_FRAME_LEN{64};
-	static constexpr uint8_t ALT_FRAME_SYNC_1{0x84};
-	static constexpr uint8_t ALT_FRAME_SYNC_2{0xBA};
-	static constexpr size_t ALT_FRAME_LEN{28};
-	static constexpr size_t COMMAND_LEN{16};
-	static constexpr size_t OWNSHIP_STATE_LEN{32};
-	static constexpr unsigned CENTER_SEQUENCE_DELAY_US{80000};
-	
+	static constexpr uint8_t SYNC_1{0x55};
+	static constexpr uint8_t SYNC_2{0xAA};
+	static constexpr size_t MAX_FRAME_LEN{128};
+	static constexpr uint8_t FRAME_ID_MODE{0x00};
+	static constexpr uint8_t FRAME_ID_VISIBLE{0x01};
+	static constexpr uint8_t FRAME_ID_INFRARED{0x02};
+	static constexpr uint8_t FRAME_ID_LASER{0x03};
+	static constexpr uint8_t FRAME_ID_TRACKER{0x04};
+	static constexpr uint8_t FRAME_ID_IMU{0x06};
+	static constexpr uint8_t FRAME_ID_FLIGHT_DATA{0x07};
+	static constexpr uint8_t MODE_FRAME_DATA_LEN{0x1D};
+	static constexpr size_t MODE_FRAME_LEN{33};
+	static constexpr uint8_t TRACKER_FRAME_DATA_LEN{0x0A};
+	static constexpr size_t TRACKER_FRAME_LEN{14};
+	static constexpr size_t FLIGHT_DATA_FRAME_LEN{42};
+	static constexpr size_t TX_QUEUE_DEPTH{16};
+	static constexpr size_t MAX_TX_FRAMES_PER_COMMAND{3};
+
+	static constexpr uint8_t MODE_DISABLE{0x00};
+	static constexpr uint8_t MODE_HOME{0x02};
+	static constexpr uint8_t MODE_FOLLOW_ANGLE{0x03};
+	static constexpr uint8_t MODE_LOCK{0x04};
+	static constexpr uint8_t MODE_SCAN{0x05};
+	static constexpr uint8_t MODE_TRACK{0x06};
+	static constexpr uint8_t MODE_GEO_FOLLOW{0x07};
+	static constexpr uint8_t TRACKER_TARGET_TYPE{0x21};
+	static constexpr uint8_t TRACKER_AI_ENABLE{0x22};
+	static constexpr uint8_t TRACKER_AI_DISABLE{0x23};
+	static constexpr uint8_t TRACKER_ASSIST_ENABLE{0x24};
+	static constexpr uint8_t TRACKER_ASSIST_DISABLE{0x25};
+	static constexpr uint8_t TRACKER_TARGET_ID{0x26};
+	static constexpr uint8_t TRACKER_SOFTWARE_VERSION_READ{0x35};
+	static constexpr uint8_t TRACKER_IMAGE_MODE{0x37};
+	static constexpr uint16_t IMAGE_MODE_VISIBLE{0};
+	static constexpr uint16_t IMAGE_MODE_INFRARED{1};
+	static constexpr uint8_t IMAGE_STATUS_VISIBLE{0x01};
+	static constexpr uint8_t IMAGE_STATUS_INFRARED{0x02};
+	static constexpr uint16_t RECOGNITION_TARGET_DETECTED{100};
+	static constexpr hrt_abstime IMAGE_SOURCE_CONFIRM_TIMEOUT{1_s};
+	static constexpr hrt_abstime SOFTWARE_VERSION_RETRY_INTERVAL{1_s};
+	static constexpr uint8_t SOFTWARE_VERSION_MAX_REQUESTS{3};
+	static constexpr uint8_t TRACKER_OSD_ENABLE{0x07};
+	static constexpr uint8_t TRACKER_OSD_DISABLE{0x08};
+	static constexpr uint8_t TRACKER_DETECTION_START{0x2B};
 
 	void Run() override;
-
 	bool open_serial();
 	void close_serial();
 	int configure_serial(int fd, int baud);
 	speed_t baud_to_speed(int baud) const;
+	void update_params_if_needed();
+	void update_arming_state();
 
 	void read_serial();
 	void process_byte(uint8_t byte);
-	void process_primary_byte(uint8_t byte);
-	void process_alt_byte(uint8_t byte);
-	void reset_primary_frame_parser();
+	void reset_parser();
 	bool validate_frame(const uint8_t *frame, size_t frame_len) const;
-	void handle_primary_frame(const uint8_t *frame, size_t frame_len, hrt_abstime now);
-	void handle_frame(const uint8_t *frame, hrt_abstime now);
-	void handle_target_geo_frame(const uint8_t *frame, hrt_abstime now);
-	void handle_status_reply_frame(const uint8_t *frame, size_t frame_len, hrt_abstime now);
-	void handle_alt_frame(const uint8_t *frame, hrt_abstime now);
-	void maybe_log_target(const dyt_target_s &target, const uint8_t *frame);
-	void maybe_log_target_geo(const uint8_t *frame, hrt_abstime now);
-	void log_status_reply(const dyt_status_reply_s &reply, const uint8_t *frame, size_t frame_len);
-	void maybe_log_raw_frame(const char *label, const uint8_t *frame, size_t frame_len);
+	void handle_frame(const uint8_t *frame, size_t frame_len, hrt_abstime now);
+	void handle_servo_status(const uint8_t *frame, size_t frame_len, hrt_abstime now);
+	void handle_payload_status(const uint8_t *frame, size_t frame_len, hrt_abstime now);
+	void handle_tracker_status(const uint8_t *frame, size_t frame_len, hrt_abstime now);
+	void publish_generic_reply(const uint8_t *frame, size_t frame_len, hrt_abstime now);
 	void publish_link_state(hrt_abstime now, uint8_t tracking_state);
-	const char *control_name(uint8_t control) const;
-	const char *geotrack_cmd_name(uint8_t command) const;
-	const char *lift_state_name(uint8_t state) const;
+	void maybe_log_target(const dyt_target_s &target, uint8_t raw_tracking_state);
+	void maybe_log_raw_frame(const char *label, const uint8_t *frame, size_t frame_len);
 
 	void handle_command_updates();
-	void send_startup_home_if_needed(hrt_abstime now);
 	void send_protocol_command(const dyt_command_s &cmd);
-	void publish_shell_command(uint8_t command);
-	void send_center_sequence();
-	int16_t angle_deg_to_cdeg(float angle_deg) const;
-	bool write_command_buffer(const uint8_t *buffer, size_t buffer_len);
-	void send_command_frame(uint8_t control, int16_t param_x, int16_t param_y, uint8_t param3, int8_t zoom_rate);
-	void send_geo_track_frame(uint8_t state, double lat_deg, double lon_deg, float alt_m);
-	void send_ownship_state_frame(const dyt_command_s &cmd);
-	void corrected_geo_attitude_deg(const dyt_command_s &cmd, float &roll_deg, float &pitch_deg, float &yaw_deg) const;
-	float corrected_geo_axis_deg(float angle_rad, int sign_param, float offset_deg) const;
-	float finite_param_deg(float value) const;
-	static void put_u16_le(uint8_t *buffer, size_t index, uint16_t value);
-	static void put_u32_le(uint8_t *buffer, size_t index, uint32_t value);
-	static int16_t scaled_s16(float value, float scale, float min_value, float max_value);
-	static uint16_t scaled_u16(float value, float scale, float max_value);
-	static int32_t geo_deg_to_e7(double deg, double min_deg, double max_deg);
-	static uint8_t checksum8(const uint8_t *buffer, size_t checksum_index);
+	bool send_mode_once();
+	void set_mode(uint8_t control);
+	void set_angle_mode(float yaw_deg, float pitch_deg);
+	void set_tracking_mode(int16_t x_px, int16_t y_px);
+	void set_scan_mode(const dyt_command_s &cmd);
+	void set_geo_mode(double lat_deg, double lon_deg, float alt_m);
+	bool send_tracker_command(uint8_t control, uint32_t value = 0);
+	bool send_tracker_u16_command(uint8_t control, uint16_t value);
+	bool send_flight_data(const dyt_command_s &cmd);
+	bool write_frame(const uint8_t *buffer, size_t buffer_len);
+	bool drain_tx_queue();
+	void reset_tx_queue();
+	bool send_detection_start_if_needed();
+	void request_software_version_if_needed(hrt_abstime now);
+	void send_startup_home_if_needed(hrt_abstime now);
 
-	void update_params_if_needed();
+	void publish_shell_command(uint8_t command);
+	void publish_shell_angle_command(float yaw_deg, float pitch_deg);
+	void publish_shell_track_point_command(int16_t x_px, int16_t y_px);
+	void publish_shell_value_command(uint8_t command, uint32_t value);
+	static bool parse_float_arg(const char *arg, float &value);
+	static bool parse_int32_arg(const char *arg, int32_t &value, int32_t min_value, int32_t max_value);
+	static bool parse_uint32_arg(const char *arg, uint32_t &value);
+
+	static uint8_t checksum8(const uint8_t *buffer, size_t checksum_index);
+	static uint16_t read_be_u16(const uint8_t *buffer, size_t index);
+	static int16_t read_be_s16(const uint8_t *buffer, size_t index);
+	static float read_be_float(const uint8_t *buffer, size_t index);
+	static void put_be_u16(uint8_t *buffer, size_t index, uint16_t value);
+	static void put_be_u32(uint8_t *buffer, size_t index, uint32_t value);
+	static void put_be_float(uint8_t *buffer, size_t index, float value);
+	static int16_t angle_deg_to_cdeg(float angle_deg);
 
 	int _uart_fd{-1};
 	char _device_path[32]{};
-	uint8_t _frame[MAX_FRAME_LEN]{};
-	size_t _frame_index{0};
-	bool _awaiting_sync_2{false};
+	uint8_t _rx_frame[MAX_FRAME_LEN]{};
+	size_t _rx_index{0};
 	size_t _expected_frame_len{0};
-	uint8_t _frame_type{0};
-	uint8_t _alt_frame[ALT_FRAME_LEN]{};
-	size_t _alt_frame_index{0};
-	bool _alt_awaiting_sync_2{false};
+	struct TxFrame {
+		uint8_t data[MAX_FRAME_LEN]{};
+		uint16_t length{0};
+		uint16_t offset{0};
+	};
+	TxFrame _tx_queue[TX_QUEUE_DEPTH]{};
+	size_t _tx_queue_head{0};
+	size_t _tx_queue_tail{0};
+	size_t _tx_queue_count{0};
 
-	hrt_abstime _last_rx_time{0};
-	hrt_abstime _last_target_geo_time{0};
-	hrt_abstime _last_target_geo_log_time{0};
-	hrt_abstime _last_status_reply_time{0};
-	hrt_abstime _last_alt_rx_time{0};
 	hrt_abstime _last_open_attempt{0};
+	hrt_abstime _last_servo_time{0};
 	hrt_abstime _last_state_publish{0};
-	hrt_abstime _last_command_time{0};
 	hrt_abstime _last_target_log_time{0};
 	hrt_abstime _startup_home_time{0};
-	hrt_abstime _startup_home_end_time{0};
-	hrt_abstime _startup_home_next_time{0};
+	hrt_abstime _tracking_mode_guard_until{0};
 
+	uint64_t _rx_byte_count{0};
 	uint32_t _frame_counter{0};
-	uint32_t _target_geo_frame_counter{0};
-	uint32_t _status_reply_counter{0};
-	uint32_t _alt_frame_counter{0};
+	uint32_t _frame_id_count[8]{};
+	uint32_t _command_tx_count{0};
 	uint16_t _parse_error_count{0};
 	uint16_t _read_error_count{0};
 	uint16_t _write_error_count{0};
-	uint64_t _rx_byte_count{0};
-	uint32_t _sync1_count{0};
-	uint32_t _sync2_count{0};
-	uint32_t _target_geo_sync2_count{0};
-	uint32_t _status_reply_sync2_count{0};
-	uint32_t _other_frame_type_count{0};
-	uint8_t _last_sync2_byte{0};
-	uint32_t _alt_sync1_count{0};
-	uint32_t _alt_sync2_count{0};
-	uint8_t _alt_last_sync2_byte{0};
-	uint32_t _command_tx_count{0};
-	uint32_t _startup_home_count{0};
-	uint8_t _last_command_control{0};
 	int _last_write_errno{0};
 	int _last_write_result{0};
+	uint8_t _last_command{dyt_command_s::CMD_NONE};
+	uint8_t _last_raw_tracking_state{0};
+	uint8_t _mode_control{MODE_DISABLE};
+	uint8_t _mode_selection{0};
+	uint8_t _mode_params[20]{};
+	float _visible_zoom{NAN};
+	float _infrared_zoom{NAN};
+	float _visible_horizontal_fov_deg{NAN};
+	float _infrared_horizontal_fov_deg{NAN};
 	bool _startup_home_sent{false};
-	bool _startup_home_canceled{false};
+	bool _armed{false};
+	bool _detection_start_pending{false};
+	size_t _detection_start_tx_offset{0};
+	bool _image_source_confirmation_pending{false};
+	bool _image_source_confirmation_warned{false};
+	uint8_t _requested_image_status{0};
+	hrt_abstime _image_source_request_time{0};
+	uint8_t _tracker_software_version[8]{};
+	uint8_t _software_version_request_count{0};
+	hrt_abstime _last_software_version_request{0};
+	bool _software_version_valid{false};
 
 	dyt_target_s _last_target{};
-	dyt_status_reply_s _last_status_reply{};
 
 	uORB::Subscription _dyt_command_sub{ORB_ID(dyt_command)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Publication<dyt_command_s> _dyt_command_pub{ORB_ID(dyt_command)};
 	uORB::Publication<dyt_status_reply_s> _dyt_status_reply_pub{ORB_ID(dyt_status_reply)};
 	uORB::Publication<dyt_target_s> _dyt_target_pub{ORB_ID(dyt_target)};
@@ -177,21 +220,16 @@ private:
 		(ParamInt<px4::params::DYT_RAWLOG>) _param_dyt_rawlog,
 		(ParamInt<px4::params::DYT_HOME_EN>) _param_dyt_home_en,
 		(ParamInt<px4::params::DYT_HOME_DLY>) _param_dyt_home_delay_ms,
-		(ParamInt<px4::params::DYT_HOME_DUR>) _param_dyt_home_duration_ms,
-		(ParamInt<px4::params::DYT_HOME_INT>) _param_dyt_home_interval_ms,
 		(ParamFloat<px4::params::DYT_HOME_YAW>) _param_dyt_home_yaw_deg,
 		(ParamFloat<px4::params::DYT_HOME_PIT>) _param_dyt_home_pitch_deg,
-		(ParamInt<px4::params::DYT_GEO_RSIGN>) _param_dyt_geo_roll_sign,
-		(ParamInt<px4::params::DYT_GEO_PSIGN>) _param_dyt_geo_pitch_sign,
-		(ParamInt<px4::params::DYT_GEO_YSIGN>) _param_dyt_geo_yaw_sign,
-		(ParamFloat<px4::params::DYT_GEO_ROFF>) _param_dyt_geo_roll_offset_deg,
-		(ParamFloat<px4::params::DYT_GEO_POFF>) _param_dyt_geo_pitch_offset_deg,
-		(ParamFloat<px4::params::DYT_GEO_YOFF>) _param_dyt_geo_yaw_offset_deg,
-		(ParamInt<px4::params::DYT_GEO_MNT_EN>) _param_dyt_geo_mount_enable,
-		(ParamFloat<px4::params::DYT_GEO_MNT_R>) _param_dyt_geo_mount_roll_deg,
-		(ParamFloat<px4::params::DYT_GEO_MNT_P>) _param_dyt_geo_mount_pitch_deg,
-		(ParamFloat<px4::params::DYT_GEO_MNT_Y>) _param_dyt_geo_mount_yaw_deg
-	);
+		(ParamFloat<px4::params::DYT_LOS_SC>) _param_dyt_los_scale_deg,
+		(ParamInt<px4::params::DYT_VIS_W>) _param_dyt_visible_width_px,
+		(ParamInt<px4::params::DYT_VIS_H>) _param_dyt_visible_height_px,
+		(ParamInt<px4::params::DYT_IR_W>) _param_dyt_infrared_width_px,
+		(ParamInt<px4::params::DYT_IR_H>) _param_dyt_infrared_height_px,
+		(ParamInt<px4::params::DYT_TRK_VAL>) _param_dyt_tracking_value,
+		(ParamInt<px4::params::DYT_LOCK_MS>) _param_dyt_lock_hold_ms
+	)
 };
 
 DytGimbal::DytGimbal(const char *device_path) :
@@ -200,8 +238,9 @@ DytGimbal::DytGimbal(const char *device_path) :
 {
 	strncpy(_device_path, device_path, sizeof(_device_path) - 1);
 	_device_path[sizeof(_device_path) - 1] = '\0';
-	memset(&_last_target, 0, sizeof(_last_target));
 	_last_target.range_m = NAN;
+	_last_target.bbox_width_px = NAN;
+	_last_target.bbox_height_px = NAN;
 }
 
 DytGimbal::~DytGimbal()
@@ -223,68 +262,31 @@ int DytGimbal::print_status()
 
 void DytGimbal::show_status()
 {
-	PX4_INFO("port: %s", _device_path);
-	PX4_INFO("fd: %d", _uart_fd);
-	PX4_INFO("rx bytes: %llu", static_cast<unsigned long long>(_rx_byte_count));
-	PX4_INFO("sync 0xEE: %lu", static_cast<unsigned long>(_sync1_count));
-	PX4_INFO("sync 0x16: %lu", static_cast<unsigned long>(_sync2_count));
-	PX4_INFO("sync 0x18: %lu", static_cast<unsigned long>(_target_geo_sync2_count));
-	PX4_INFO("sync 0x19: %lu", static_cast<unsigned long>(_status_reply_sync2_count));
-	PX4_INFO("other after 0xEE: %lu", static_cast<unsigned long>(_other_frame_type_count));
-	PX4_INFO("last byte after 0xEE: 0x%02x", _last_sync2_byte);
-	PX4_INFO("sync 0x84: %lu", static_cast<unsigned long>(_alt_sync1_count));
-	PX4_INFO("sync 0xBA: %lu", static_cast<unsigned long>(_alt_sync2_count));
-	PX4_INFO("alt frames: %lu", static_cast<unsigned long>(_alt_frame_counter));
-	PX4_INFO("last byte after 0x84: 0x%02x", _alt_last_sync2_byte);
-	PX4_INFO("frames: %lu", static_cast<unsigned long>(_frame_counter));
-	PX4_INFO("target geo frames: %lu", static_cast<unsigned long>(_target_geo_frame_counter));
-	PX4_INFO("status replies: %lu", static_cast<unsigned long>(_status_reply_counter));
-	PX4_INFO("parse errors: %u", _parse_error_count);
-	PX4_INFO("read errors: %u", _read_error_count);
-	PX4_INFO("write errors: %u", _write_error_count);
-	PX4_INFO("last write result: %d errno: %d", _last_write_result, _last_write_errno);
-	PX4_INFO("tx commands: %lu", static_cast<unsigned long>(_command_tx_count));
-	PX4_INFO("last command control: 0x%02x", _last_command_control);
-	PX4_INFO("last command tx: %.3f s", static_cast<double>(_last_command_time > 0 ?
-			(hrt_absolute_time() - _last_command_time) * 1e-6 : -1.0));
-	PX4_INFO("last target: state=%u valid=%u follow=%u motor=%u elect_lock=%u yaw=%.2f deg",
-		 static_cast<unsigned>(_last_target.tracking_state),
-		 static_cast<unsigned>(_last_target.target_valid),
-		 static_cast<unsigned>((_last_target.status2 & (1 << 2)) != 0),
-		 static_cast<unsigned>((_last_target.status2 & (1 << 3)) != 0),
-		 static_cast<unsigned>((_last_target.status2 & (1 << 1)) != 0),
-		 static_cast<double>(math::degrees(_last_target.gimbal_yaw_rad)));
-	PX4_INFO("startup home: en=%ld sent=%u canceled=%u count=%lu yaw=%.1f pitch=%.1f next=%.3f s",
-		 static_cast<long>(_param_dyt_home_en.get()),
-		 static_cast<unsigned>(_startup_home_sent),
-		 static_cast<unsigned>(_startup_home_canceled),
-		 static_cast<unsigned long>(_startup_home_count),
-		 static_cast<double>(_param_dyt_home_yaw_deg.get()),
-		 static_cast<double>(_param_dyt_home_pitch_deg.get()),
-		 static_cast<double>(_startup_home_next_time > 0 && hrt_absolute_time() < _startup_home_next_time ?
-			(_startup_home_next_time - hrt_absolute_time()) * 1e-6 : 0.0));
-	PX4_INFO("geo attitude correction: sign=(%ld %ld %ld) offset=(%.1f %.1f %.1f) deg",
-		 static_cast<long>(_param_dyt_geo_roll_sign.get()),
-		 static_cast<long>(_param_dyt_geo_pitch_sign.get()),
-		 static_cast<long>(_param_dyt_geo_yaw_sign.get()),
-		 static_cast<double>(_param_dyt_geo_roll_offset_deg.get()),
-		 static_cast<double>(_param_dyt_geo_pitch_offset_deg.get()),
-		 static_cast<double>(_param_dyt_geo_yaw_offset_deg.get()));
-	PX4_INFO("geo mount rotation: en=%ld rpy=(%.1f %.1f %.1f) deg",
-		 static_cast<long>(_param_dyt_geo_mount_enable.get()),
-		 static_cast<double>(_param_dyt_geo_mount_roll_deg.get()),
-		 static_cast<double>(_param_dyt_geo_mount_pitch_deg.get()),
-		 static_cast<double>(_param_dyt_geo_mount_yaw_deg.get()));
-	PX4_INFO("debug log period: %ld ms", static_cast<long>(_param_dyt_log_ms.get()));
-	PX4_INFO("raw frame log: %ld", static_cast<long>(_param_dyt_rawlog.get()));
-	PX4_INFO("last rx: %.3f s", static_cast<double>(_last_rx_time > 0 ?
-			(hrt_absolute_time() - _last_rx_time) * 1e-6 : -1.0));
-	PX4_INFO("last geo rx: %.3f s", static_cast<double>(_last_target_geo_time > 0 ?
-			(hrt_absolute_time() - _last_target_geo_time) * 1e-6 : -1.0));
-	PX4_INFO("last reply rx: %.3f s", static_cast<double>(_last_status_reply_time > 0 ?
-			(hrt_absolute_time() - _last_status_reply_time) * 1e-6 : -1.0));
-	PX4_INFO("last alt rx: %.3f s", static_cast<double>(_last_alt_rx_time > 0 ?
-			(hrt_absolute_time() - _last_alt_rx_time) * 1e-6 : -1.0));
+	PX4_INFO("protocol: Tweety V2.0.9.6 (0x55 0xAA)");
+	PX4_INFO("port: %s fd: %d baud: %ld", _device_path, _uart_fd, static_cast<long>(_param_dyt_baud.get()));
+	PX4_INFO("rx bytes: %llu frames: %lu parse/read/write errors: %u/%u/%u",
+		 static_cast<unsigned long long>(_rx_byte_count), static_cast<unsigned long>(_frame_counter),
+		 _parse_error_count, _read_error_count, _write_error_count);
+	PX4_INFO("frames servo/vis/ir/laser/tracker/imu/flight: %lu/%lu/%lu/%lu/%lu/%lu/%lu",
+		 static_cast<unsigned long>(_frame_id_count[0]), static_cast<unsigned long>(_frame_id_count[1]),
+		 static_cast<unsigned long>(_frame_id_count[2]), static_cast<unsigned long>(_frame_id_count[3]),
+		 static_cast<unsigned long>(_frame_id_count[4]), static_cast<unsigned long>(_frame_id_count[6]),
+		 static_cast<unsigned long>(_frame_id_count[7]));
+	PX4_INFO("last servo: %.3f s raw tracking: 0x%02x lock value: 0x%02lx manual LOS scale: %.6f deg/px",
+		 static_cast<double>(_last_servo_time > 0 ? (hrt_absolute_time() - _last_servo_time) * 1e-6 : -1.0),
+		 static_cast<unsigned>(_last_raw_tracking_state), static_cast<unsigned long>(_param_dyt_tracking_value.get()),
+		 static_cast<double>(_param_dyt_los_scale_deg.get()));
+	PX4_INFO("LOS cameras: VIS %.1f deg %ldx%ld IR %.1f deg %ldx%ld",
+		 static_cast<double>(_visible_horizontal_fov_deg), static_cast<long>(_param_dyt_visible_width_px.get()),
+		 static_cast<long>(_param_dyt_visible_height_px.get()), static_cast<double>(_infrared_horizontal_fov_deg),
+		 static_cast<long>(_param_dyt_infrared_width_px.get()), static_cast<long>(_param_dyt_infrared_height_px.get()));
+	PX4_INFO("image source: raw=0x%02x requested=0x%02x pending=%d zoom=%.1f",
+		 static_cast<unsigned>(_last_target.status3), static_cast<unsigned>(_requested_image_status),
+		 _image_source_confirmation_pending, static_cast<double>(_last_target.zoom_ratio));
+	PX4_INFO("mode control: 0x%02x tx: %lu queued: %u last command: %u write result/errno: %d/%d",
+		 static_cast<unsigned>(_mode_control), static_cast<unsigned long>(_command_tx_count),
+		 static_cast<unsigned>(_tx_queue_count), static_cast<unsigned>(_last_command), _last_write_result,
+		 _last_write_errno);
 }
 
 void DytGimbal::Run()
@@ -297,11 +299,13 @@ void DytGimbal::Run()
 	}
 
 	update_params_if_needed();
-
+	update_arming_state();
 	const hrt_abstime now = hrt_absolute_time();
 
 	if (_uart_fd < 0) {
-		if ((now - _last_open_attempt) >= static_cast<hrt_abstime>(_param_dyt_retry_ms.get()) * 1000ULL) {
+		const hrt_abstime retry_us = static_cast<hrt_abstime>(math::max(_param_dyt_retry_ms.get(), int32_t{100})) * 1000ULL;
+
+		if (_last_open_attempt == 0 || now - _last_open_attempt >= retry_us) {
 			_last_open_attempt = now;
 			open_serial();
 		}
@@ -310,15 +314,56 @@ void DytGimbal::Run()
 		return;
 	}
 
+	// Complete an already-started frame before issuing any other frame. This keeps
+	// short non-blocking writes from interleaving two protocol packets.
+	if (!drain_tx_queue()) {
+		return;
+	}
+
+	const bool tx_queue_busy = _tx_queue_count > 0;
+
+	// Detection start has priority at the next frame boundary. If a queued frame
+	// is still waiting for UART space, do not consume more commands this cycle.
+	if (!tx_queue_busy && !send_detection_start_if_needed()) {
+		return;
+	}
+
 	read_serial();
-	handle_command_updates();
-	send_startup_home_if_needed(now);
+	const hrt_abstime now_after_read = hrt_absolute_time();
 
-	const hrt_abstime timeout_us = static_cast<hrt_abstime>(_param_dyt_timeout_ms.get()) * 1000ULL;
-	const hrt_abstime timeout_check_time = hrt_absolute_time();
+	if (!tx_queue_busy) {
+		handle_command_updates();
+		send_startup_home_if_needed(now_after_read);
 
-	if ((_last_rx_time == 0) || ((timeout_check_time - _last_rx_time) > timeout_us)) {
-		publish_link_state(timeout_check_time, dyt_target_s::TRACKING_STATE_TIMEOUT);
+		// Status reads are lower priority than mode/lock commands and only start
+		// at an empty frame boundary.
+		if (_tx_queue_count == 0) {
+			request_software_version_if_needed(now_after_read);
+		}
+	}
+
+	const hrt_abstime timeout_us = static_cast<hrt_abstime>(math::max(_param_dyt_timeout_ms.get(), int32_t{50})) * 1000ULL;
+	const bool servo_timed_out = _last_servo_time == 0 || now_after_read < _last_servo_time ||
+				     now_after_read - _last_servo_time > timeout_us;
+
+	if (servo_timed_out) {
+		publish_link_state(now_after_read, dyt_target_s::TRACKING_STATE_TIMEOUT);
+	}
+}
+
+void DytGimbal::update_arming_state()
+{
+	vehicle_status_s vehicle_status{};
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		const bool armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+
+		if (armed && !_armed) {
+			_detection_start_pending = true;
+			_detection_start_tx_offset = 0;
+		}
+
+		_armed = armed;
 	}
 }
 
@@ -349,15 +394,30 @@ bool DytGimbal::open_serial()
 		return false;
 	}
 
-	PX4_INFO("opened %s @ %ld", _device_path, static_cast<long>(_param_dyt_baud.get()));
-	const int32_t delay_ms = math::constrain(_param_dyt_home_delay_ms.get(), int32_t{0}, int32_t{30000});
-	const int32_t duration_ms = math::constrain(_param_dyt_home_duration_ms.get(), int32_t{0}, int32_t{30000});
-	_startup_home_time = hrt_absolute_time() + static_cast<hrt_abstime>(delay_ms) * 1000ULL;
-	_startup_home_end_time = _startup_home_time + static_cast<hrt_abstime>(duration_ms) * 1000ULL;
-	_startup_home_next_time = _startup_home_time;
+	reset_parser();
+	_last_servo_time = 0;
+	_visible_horizontal_fov_deg = NAN;
+	_infrared_horizontal_fov_deg = NAN;
+	_visible_zoom = NAN;
+	_infrared_zoom = NAN;
+	memset(_tracker_software_version, 0, sizeof(_tracker_software_version));
+	_software_version_request_count = 0;
+	_last_software_version_request = 0;
+	_software_version_valid = false;
+	_mode_control = MODE_DISABLE;
+	memset(_mode_params, 0, sizeof(_mode_params));
 	_startup_home_sent = false;
-	_startup_home_canceled = false;
-	_startup_home_count = 0;
+
+	if (_armed) {
+		// The gimbal or UART may have restarted in flight. Re-send the start
+		// command after reconnect so target detection is restored.
+		_detection_start_pending = true;
+		_detection_start_tx_offset = 0;
+	}
+
+	_startup_home_time = hrt_absolute_time() +
+		static_cast<hrt_abstime>(math::max(_param_dyt_home_delay_ms.get(), int32_t{0})) * 1000ULL;
+	PX4_INFO("opened %s @ %ld", _device_path, static_cast<long>(_param_dyt_baud.get()));
 	return true;
 }
 
@@ -368,12 +428,12 @@ void DytGimbal::close_serial()
 		_uart_fd = -1;
 	}
 
-	_startup_home_time = 0;
-	_startup_home_end_time = 0;
-	_startup_home_next_time = 0;
-	_startup_home_sent = false;
-	_startup_home_canceled = false;
-	_startup_home_count = 0;
+	reset_tx_queue();
+
+	_image_source_confirmation_pending = false;
+	_image_source_confirmation_warned = false;
+	_requested_image_status = 0;
+	_image_source_request_time = 0;
 }
 
 speed_t DytGimbal::baud_to_speed(int baud) const
@@ -406,32 +466,27 @@ int DytGimbal::configure_serial(int fd, int baud)
 		return PX4_ERROR;
 	}
 
-	struct termios uart_config {};
+	struct termios config {};
 
-	if (tcgetattr(fd, &uart_config) < 0) {
+	if (tcgetattr(fd, &config) < 0) {
 		PX4_ERR("tcgetattr failed (%d)", errno);
 		return PX4_ERROR;
 	}
 
-	cfmakeraw(&uart_config);
-	uart_config.c_cflag |= (CLOCAL | CREAD);
-	uart_config.c_cflag &= ~CSIZE;
-	uart_config.c_cflag |= CS8;
-	uart_config.c_cflag &= ~PARENB;
-	uart_config.c_cflag &= ~CSTOPB;
+	cfmakeraw(&config);
+	config.c_cflag |= CLOCAL | CREAD;
+	config.c_cflag &= ~CSIZE;
+	config.c_cflag |= CS8;
+	config.c_cflag &= ~PARENB;
+	config.c_cflag &= ~CSTOPB;
 #ifdef CRTSCTS
-	uart_config.c_cflag &= ~CRTSCTS;
+	config.c_cflag &= ~CRTSCTS;
 #endif
-	uart_config.c_cc[VMIN] = 0;
-	uart_config.c_cc[VTIME] = 0;
+	config.c_cc[VMIN] = 0;
+	config.c_cc[VTIME] = 0;
 
-	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		PX4_ERR("baud config failed (%d)", errno);
-		return PX4_ERROR;
-	}
-
-	if (tcsetattr(fd, TCSANOW, &uart_config) < 0) {
-		PX4_ERR("tcsetattr failed (%d)", errno);
+	if (cfsetispeed(&config, speed) < 0 || cfsetospeed(&config, speed) < 0 || tcsetattr(fd, TCSANOW, &config) < 0) {
+		PX4_ERR("serial config failed (%d)", errno);
 		return PX4_ERROR;
 	}
 
@@ -442,16 +497,9 @@ void DytGimbal::read_serial()
 {
 	uint8_t buffer[128]{};
 
-	for (;;) {
+	// Bound work on the shared queue even if the UART is continuously busy.
+	for (unsigned reads = 0; reads < 8; ++reads) {
 		const ssize_t nread = ::read(_uart_fd, buffer, sizeof(buffer));
-		bool would_block = false;
-
-		if (nread < 0) {
-			would_block = (errno == EAGAIN);
-#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
-			would_block = would_block || (errno == EWOULDBLOCK);
-#endif
-		}
 
 		if (nread > 0) {
 			_rx_byte_count += static_cast<uint64_t>(nread);
@@ -460,10 +508,10 @@ void DytGimbal::read_serial()
 				process_byte(buffer[i]);
 			}
 
-		} else if (nread == 0 || would_block) {
+		} else if (nread == 0 || errno == EAGAIN || errno == EWOULDBLOCK) {
 			break;
 
-		} else {
+		} else if (errno != EINTR) {
 			++_read_error_count;
 			close_serial();
 			break;
@@ -471,402 +519,298 @@ void DytGimbal::read_serial()
 	}
 }
 
+void DytGimbal::reset_parser()
+{
+	_rx_index = 0;
+	_expected_frame_len = 0;
+}
+
 void DytGimbal::process_byte(uint8_t byte)
 {
-	process_primary_byte(byte);
-	process_alt_byte(byte);
-}
-
-void DytGimbal::reset_primary_frame_parser()
-{
-	_frame_index = 0;
-	_awaiting_sync_2 = false;
-	_expected_frame_len = 0;
-	_frame_type = 0;
-}
-
-void DytGimbal::process_primary_byte(uint8_t byte)
-{
-	if (_frame_index == 0) {
-		if (byte == FRAME_SYNC_1) {
-			++_sync1_count;
-			_frame[_frame_index++] = byte;
-			_awaiting_sync_2 = true;
-			_expected_frame_len = 0;
-			_frame_type = 0;
+	if (_rx_index == 0) {
+		if (byte == SYNC_1) {
+			_rx_frame[_rx_index++] = byte;
 		}
 
 		return;
 	}
 
-	if (_awaiting_sync_2) {
-		_last_sync2_byte = byte;
+	if (_rx_index == 1) {
+		if (byte == SYNC_2) {
+			_rx_frame[_rx_index++] = byte;
 
-		if ((byte == FRAME_SYNC_2_TELEMETRY) || (byte == FRAME_SYNC_2_TARGET_GEO) || (byte == FRAME_SYNC_2_STATUS_REPLY)) {
-			_frame_type = byte;
-			_frame[_frame_index++] = byte;
-			_awaiting_sync_2 = false;
-
-			if (byte == FRAME_SYNC_2_TELEMETRY) {
-				++_sync2_count;
-				_expected_frame_len = FIXED_FRAME_LEN;
-
-			} else if (byte == FRAME_SYNC_2_TARGET_GEO) {
-				++_target_geo_sync2_count;
-				_expected_frame_len = FIXED_FRAME_LEN;
-
-			} else {
-				++_status_reply_sync2_count;
-				_expected_frame_len = 0;
-			}
-
-		} else if (byte == FRAME_SYNC_1) {
-			++_sync1_count;
-			_frame[0] = FRAME_SYNC_1;
-			_frame_index = 1;
-
-		} else {
-			++_other_frame_type_count;
-			_frame_index = 0;
-			_awaiting_sync_2 = false;
+		} else if (byte != SYNC_1) {
+			reset_parser();
 		}
 
 		return;
 	}
 
-	if (_frame_index >= MAX_FRAME_LEN) {
-		++_parse_error_count;
-		publish_link_state(hrt_absolute_time(), dyt_target_s::TRACKING_STATE_ERROR);
-		reset_primary_frame_parser();
-		return;
-	}
+	if (_rx_index == 2) {
+		const size_t total_length = static_cast<size_t>(byte) + 4;
 
-	_frame[_frame_index++] = byte;
-
-	if ((_frame_type == FRAME_SYNC_2_STATUS_REPLY) && (_frame_index == 4)) {
-		_expected_frame_len = static_cast<size_t>(_frame[3]) + 5;
-
-		if ((_expected_frame_len < 5) || (_expected_frame_len > MAX_FRAME_LEN)) {
+		if (byte < 1 || total_length > MAX_FRAME_LEN) {
 			++_parse_error_count;
-			publish_link_state(hrt_absolute_time(), dyt_target_s::TRACKING_STATE_ERROR);
-			reset_primary_frame_parser();
+			reset_parser();
 			return;
 		}
+
+		_expected_frame_len = total_length;
 	}
 
-	if ((_expected_frame_len > 0) && (_frame_index == _expected_frame_len)) {
+	_rx_frame[_rx_index++] = byte;
+
+	if (_expected_frame_len > 0 && _rx_index == _expected_frame_len) {
 		const hrt_abstime now = hrt_absolute_time();
 
-		if (validate_frame(_frame, _expected_frame_len)) {
-			handle_primary_frame(_frame, _expected_frame_len, now);
+		if (validate_frame(_rx_frame, _expected_frame_len)) {
+			handle_frame(_rx_frame, _expected_frame_len, now);
 
 		} else {
 			++_parse_error_count;
-			publish_link_state(now, dyt_target_s::TRACKING_STATE_ERROR);
 		}
 
-		reset_primary_frame_parser();
-	}
-}
-
-void DytGimbal::process_alt_byte(uint8_t byte)
-{
-	if (_alt_frame_index == 0) {
-		if (byte == ALT_FRAME_SYNC_1) {
-			++_alt_sync1_count;
-			_alt_frame[_alt_frame_index++] = byte;
-			_alt_awaiting_sync_2 = true;
-		}
-
-		return;
-	}
-
-	if (_alt_awaiting_sync_2) {
-		_alt_last_sync2_byte = byte;
-
-		if (byte == ALT_FRAME_SYNC_2) {
-			++_alt_sync2_count;
-			_alt_frame[_alt_frame_index++] = byte;
-			_alt_awaiting_sync_2 = false;
-
-		} else if (byte == ALT_FRAME_SYNC_1) {
-			++_alt_sync1_count;
-			_alt_frame[0] = ALT_FRAME_SYNC_1;
-			_alt_frame_index = 1;
-
-		} else {
-			_alt_frame_index = 0;
-			_alt_awaiting_sync_2 = false;
-		}
-
-		return;
-	}
-
-	_alt_frame[_alt_frame_index++] = byte;
-
-	if (_alt_frame_index == ALT_FRAME_LEN) {
-		handle_alt_frame(_alt_frame, hrt_absolute_time());
-		_alt_frame_index = 0;
-		_alt_awaiting_sync_2 = false;
+		reset_parser();
 	}
 }
 
 bool DytGimbal::validate_frame(const uint8_t *frame, size_t frame_len) const
 {
-	uint8_t checksum = 0;
-
-	if (frame_len < 3) {
-		return false;
-	}
-
-	for (size_t i = 0; i < frame_len - 1; ++i) {
-		checksum = static_cast<uint8_t>(checksum + frame[i]);
-	}
-
-	return checksum == frame[frame_len - 1];
+	return frame_len >= 5 && frame[0] == SYNC_1 && frame[1] == SYNC_2 &&
+	       frame_len == static_cast<size_t>(frame[2]) + 4 && checksum8(frame, frame_len - 1) == frame[frame_len - 1];
 }
 
-void DytGimbal::handle_primary_frame(const uint8_t *frame, size_t frame_len, hrt_abstime now)
+void DytGimbal::handle_frame(const uint8_t *frame, size_t frame_len, hrt_abstime now)
 {
-	switch (frame[1]) {
-	case FRAME_SYNC_2_TELEMETRY:
-		if (frame_len == FIXED_FRAME_LEN) {
-			handle_frame(frame, now);
-		}
+	++_frame_counter;
+	const uint8_t frame_id = frame[3];
+
+	if (frame_id < sizeof(_frame_id_count) / sizeof(_frame_id_count[0])) {
+		++_frame_id_count[frame_id];
+	}
+
+	maybe_log_raw_frame("DYT V2 rx", frame, frame_len);
+
+	switch (frame_id) {
+	case FRAME_ID_MODE:
+		handle_servo_status(frame, frame_len, now);
 		break;
 
-	case FRAME_SYNC_2_TARGET_GEO:
-		if (frame_len == FIXED_FRAME_LEN) {
-			handle_target_geo_frame(frame, now);
-		}
+	case FRAME_ID_VISIBLE:
+	case FRAME_ID_INFRARED:
+		handle_payload_status(frame, frame_len, now);
 		break;
 
-	case FRAME_SYNC_2_STATUS_REPLY:
-		handle_status_reply_frame(frame, frame_len, now);
+	case FRAME_ID_TRACKER:
+		handle_tracker_status(frame, frame_len, now);
 		break;
 
 	default:
+		publish_generic_reply(frame, frame_len, now);
 		break;
 	}
 }
 
-void DytGimbal::handle_frame(const uint8_t *frame, hrt_abstime now)
+void DytGimbal::handle_servo_status(const uint8_t *frame, size_t frame_len, hrt_abstime now)
 {
-	const auto u16_at = [frame](size_t index) -> uint16_t {
-		return static_cast<uint16_t>(frame[index]) | (static_cast<uint16_t>(frame[index + 1]) << 8);
-	};
-
-	const auto s16_at = [&u16_at](size_t index) -> int16_t {
-		return static_cast<int16_t>(u16_at(index));
-	};
+	if (frame_len != 45 || frame[2] != 0x29) {
+		++_parse_error_count;
+		return;
+	}
 
 	dyt_target_s target{};
 	target.timestamp = now;
 	target.timestamp_sample = now;
-	target.frame_counter = ++_frame_counter;
-
-	target.status1 = frame[2];
-	target.status2 = frame[3];
-	target.status3 = frame[5];
-	target.self_test_raw = frame[28];
+	target.range_m = NAN;
+	target.frame_counter = _frame_counter;
 	target.parse_error_count = _parse_error_count;
+	target.self_test_raw = frame[4];
+	const uint16_t recognition_status = read_be_u16(frame, 36);
+	target.status1 = recognition_status <= UINT8_MAX ? static_cast<uint8_t>(recognition_status) : UINT8_MAX;
+	target.status2 = frame[31];
+	target.status3 = frame[5];
+	target.servo_mode = frame[6];
+	target.servo_status = dyt_target_s::SERVO_STATUS_ONLINE;
+	target.software_version_valid = _software_version_valid;
+	memcpy(target.tracker_software_version, _tracker_software_version, sizeof(target.tracker_software_version));
+	const bool image_status_valid = frame[5] == IMAGE_STATUS_VISIBLE || frame[5] == IMAGE_STATUS_INFRARED;
 
-	target.video_source = (frame[2] >> 6) & 0x3;
-	target.tracking_algorithm = (frame[2] >> 4) & 0x3;
-	target.auto_hint = (frame[2] & (1 << 3)) != 0;
-	target.tracking_state = (frame[2] & (1 << 2)) ? dyt_target_s::TRACKING_STATE_LOCKED :
-				dyt_target_s::TRACKING_STATE_SEARCH;
-	target.target_valid = target.tracking_state == dyt_target_s::TRACKING_STATE_LOCKED;
+	if (_image_source_confirmation_pending && frame[5] == _requested_image_status) {
+		_image_source_confirmation_pending = false;
+		_image_source_confirmation_warned = false;
 
-	target.image_enhance = (frame[3] & (1 << 7)) != 0;
-	target.recording = (frame[3] & (1 << 5)) != 0;
-	target.motor_on = (frame[3] & (1 << 3)) != 0;
-	target.follow_mode = (frame[3] & (1 << 2)) != 0;
-	target.laser_on = (frame[3] & (1 << 0)) != 0;
+	} else if (_image_source_confirmation_pending && !_image_source_confirmation_warned
+		   && now >= _image_source_request_time
+		   && now - _image_source_request_time > IMAGE_SOURCE_CONFIRM_TIMEOUT) {
+		PX4_WARN("image source 0x%02x not confirmed, raw status 0x%02x",
+			 static_cast<unsigned>(_requested_image_status), static_cast<unsigned>(frame[5]));
+		_image_source_confirmation_warned = true;
+	}
 
-	const uint16_t zoom_raw = static_cast<uint16_t>(frame[4]) | (static_cast<uint16_t>(frame[5] & 0x0F) << 8);
-	target.zoom_ratio = static_cast<float>(zoom_raw) * 0.1f;
+	const bool image_source_confirmed = image_status_valid && !_image_source_confirmation_pending;
+	const bool infrared_source = frame[5] == IMAGE_STATUS_INFRARED;
+	target.video_source = infrared_source ? dyt_target_s::VIDEO_SOURCE_IR_1 : dyt_target_s::VIDEO_SOURCE_VIS_1;
+	target.zoom_ratio = image_source_confirmed ? (infrared_source ? _infrared_zoom : _visible_zoom) : NAN;
 
-	target.los_x_rad = math::radians(static_cast<float>(s16_at(6)) * 0.05f);
-	target.los_y_rad = math::radians(static_cast<float>(s16_at(8)) * 0.05f);
+	target.gimbal_yaw_rate_rad_s = math::radians(read_be_float(frame, 7));
+	target.gimbal_pitch_rate_rad_s = math::radians(read_be_float(frame, 11));
+	target.gimbal_roll_rate_rad_s = math::radians(read_be_float(frame, 15));
+	target.gimbal_yaw_rad = math::radians(read_be_float(frame, 19));
+	target.gimbal_pitch_frame_rad = math::radians(read_be_float(frame, 23));
+	target.gimbal_pitch_rad = target.gimbal_pitch_frame_rad;
+	target.gimbal_roll_rad = math::radians(read_be_float(frame, 27));
 
-	target.gimbal_roll_rad = math::radians(static_cast<float>(s16_at(10)) * 0.01f);
-	target.gimbal_pitch_rad = math::radians(static_cast<float>(s16_at(12)) * 0.01f);
-	target.gimbal_yaw_rad = math::radians(static_cast<float>(s16_at(14)) * 0.01f);
+	const int16_t raw_los_x = read_be_s16(frame, 32);
+	const int16_t raw_los_y = read_be_s16(frame, 34);
+	target.miss_x_px = raw_los_x;
+	target.miss_y_px = raw_los_y;
+	const float horizontal_fov_deg = image_source_confirmed ?
+					 (infrared_source ? _infrared_horizontal_fov_deg : _visible_horizontal_fov_deg) : NAN;
+	const int32_t image_width_px = infrared_source ? _param_dyt_infrared_width_px.get() :
+				       _param_dyt_visible_width_px.get();
+	const int32_t image_height_px = infrared_source ? _param_dyt_infrared_height_px.get() :
+					_param_dyt_visible_height_px.get();
+	const uint16_t bbox_width_px = read_be_u16(frame, 40);
+	const uint16_t bbox_height_px = read_be_u16(frame, 42);
+	const bool bbox_dimensions_valid = image_source_confirmed
+					   && bbox_width_px > 0 && bbox_height_px > 0
+					   && image_width_px > 0 && image_height_px > 0
+					   && bbox_width_px <= static_cast<uint32_t>(image_width_px)
+					   && bbox_height_px <= static_cast<uint32_t>(image_height_px);
+	// Visible and infrared use the same explicit recognition result. Bounding-box
+	// dimensions alone are not sufficient: a fixed tracking gate can also be 64x64.
+	const bool recognition_detected = image_source_confirmed
+					  && recognition_status == RECOGNITION_TARGET_DETECTED;
+	const bool los_valid = dyt::pixelMissToLos(raw_los_x, raw_los_y, horizontal_fov_deg, image_width_px,
+			       image_height_px, _param_dyt_los_scale_deg.get(), target.los_x_rad, target.los_y_rad);
 
-	target.bbox_width_px = static_cast<float>(frame[16]) * 4.f;
-	target.bbox_height_px = static_cast<float>(frame[17]) * 4.f;
-
-	target.gimbal_roll_rate_rad_s = math::radians(static_cast<float>(s16_at(20)) * 0.01f);
-	target.gimbal_pitch_rate_rad_s = math::radians(static_cast<float>(s16_at(22)) * 0.01f);
-	target.gimbal_yaw_rate_rad_s = math::radians(static_cast<float>(s16_at(24)) * 0.01f);
-
-	const uint16_t range_raw = u16_at(26);
-	target.range_m = (range_raw > 0) ? static_cast<float>(range_raw) * 0.1f : NAN;
-
-	target.selftest_done = (frame[28] & (1 << 7)) != 0;
-	target.gyro_calib_failed = (frame[28] & (1 << 2)) != 0;
-	target.servo_fault = (frame[28] & (1 << 1)) != 0;
-	target.image_board_fault = (frame[28] & (1 << 0)) != 0;
-
-	target.frame_dt_s = (_last_rx_time > 0) ? (now - _last_rx_time) * 1e-6f : 0.f;
+	_last_raw_tracking_state = frame[31];
+	const int32_t tracking_value = _param_dyt_tracking_value.get();
+	const bool tracking_value_valid = tracking_value >= 0 && tracking_value <= UINT8_MAX;
+	const bool tracking_raw_matches = tracking_value_valid && frame[31] == static_cast<uint8_t>(tracking_value);
+	const bool lock_reported = frame[6] == MODE_TRACK && tracking_raw_matches;
+	target.tracking_state = lock_reported ? dyt_target_s::TRACKING_STATE_LOCKED : dyt_target_s::TRACKING_STATE_SEARCH;
+	// Report the payload lock independently, but only expose a guidance-valid target
+	// when the pixel miss distance can be converted to a finite angular LOS.
+	target.target_valid = lock_reported && image_source_confirmed && los_valid;
+	target.auto_hint = recognition_detected;
+	target.follow_mode = frame[6] == MODE_FOLLOW_ANGLE;
+	target.motor_on = frame[6] != MODE_DISABLE;
+	const bool bbox_valid = (recognition_detected || lock_reported) && bbox_dimensions_valid;
+	target.bbox_width_px = bbox_valid ? static_cast<float>(bbox_width_px) : NAN;
+	target.bbox_height_px = bbox_valid ? static_cast<float>(bbox_height_px) : NAN;
+	target.frame_dt_s = _last_servo_time > 0 ? (now - _last_servo_time) * 1e-6f : 0.f;
 	target.last_rx_age_s = 0.f;
 
-	_last_rx_time = now;
+	const bool finite_attitude = PX4_ISFINITE(target.gimbal_yaw_rad) && PX4_ISFINITE(target.gimbal_pitch_frame_rad) &&
+		PX4_ISFINITE(target.gimbal_roll_rad);
+
+	if (!finite_attitude) {
+		target.tracking_state = dyt_target_s::TRACKING_STATE_ERROR;
+		target.servo_status = dyt_target_s::SERVO_STATUS_DATA_ERROR;
+		target.target_valid = false;
+		++_parse_error_count;
+	}
+
+	_last_servo_time = now;
 	_last_state_publish = now;
 	_last_target = target;
-	maybe_log_target(target, frame);
+	maybe_log_target(target, frame[31]);
 	_dyt_target_pub.publish(target);
 }
 
-void DytGimbal::handle_target_geo_frame(const uint8_t *frame, hrt_abstime now)
+void DytGimbal::handle_payload_status(const uint8_t *frame, size_t frame_len, hrt_abstime now)
 {
-	++_target_geo_frame_counter;
-	_last_target_geo_time = now;
-	maybe_log_target_geo(frame, now);
+	if (frame_len != 20 || frame[2] != 0x10) {
+		++_parse_error_count;
+		return;
+	}
+
+	const float horizontal_fov_deg = static_cast<float>(read_be_u16(frame, 5)) * 0.1f;
+	const float zoom = static_cast<float>(read_be_u16(frame, 7)) * 0.1f;
+	const float valid_horizontal_fov_deg = horizontal_fov_deg > 0.f && horizontal_fov_deg < 179.f ?
+					       horizontal_fov_deg : NAN;
+
+	if (frame[3] == FRAME_ID_VISIBLE) {
+		_visible_horizontal_fov_deg = valid_horizontal_fov_deg;
+		_visible_zoom = zoom;
+
+	} else {
+		_infrared_horizontal_fov_deg = valid_horizontal_fov_deg;
+		_infrared_zoom = zoom;
+	}
+
+	publish_generic_reply(frame, frame_len, now);
 }
 
-void DytGimbal::handle_status_reply_frame(const uint8_t *frame, size_t frame_len, hrt_abstime now)
+void DytGimbal::handle_tracker_status(const uint8_t *frame, size_t frame_len, hrt_abstime now)
+{
+	// Tracker status 0x35 contains eight raw software-version characters
+	// in bytes 7..14 of the 15-byte status frame.
+	if (frame_len == 15 && frame[2] == 0x0B && frame[4] == TRACKER_SOFTWARE_VERSION_READ) {
+		memcpy(_tracker_software_version, &frame[6], sizeof(_tracker_software_version));
+		_software_version_valid = true;
+	}
+
+	publish_generic_reply(frame, frame_len, now);
+}
+
+void DytGimbal::publish_generic_reply(const uint8_t *frame, size_t frame_len, hrt_abstime now)
 {
 	dyt_status_reply_s reply{};
 	reply.timestamp = now;
 	reply.timestamp_sample = now;
-	reply.control_code = frame[2];
-	reply.param_length = frame[3];
-	reply.truncated = reply.param_length > sizeof(reply.params);
+	reply.control_code = frame[3];
+	const size_t payload_length = frame_len > 5 ? frame_len - 5 : 0;
+	reply.param_length = static_cast<uint8_t>(math::min(payload_length, sizeof(reply.params)));
+	reply.truncated = payload_length > sizeof(reply.params);
 	reply.parse_error_count = _parse_error_count;
 
-	const size_t max_params = sizeof(reply.params) / sizeof(reply.params[0]);
-	const size_t copy_length = (reply.param_length < max_params) ? reply.param_length : max_params;
-
-	for (size_t i = 0; i < copy_length; ++i) {
+	for (size_t i = 0; i < reply.param_length; ++i) {
 		reply.params[i] = frame[4 + i];
 	}
 
-	_last_status_reply_time = now;
-	++_status_reply_counter;
-	_last_status_reply = reply;
 	_dyt_status_reply_pub.publish(reply);
-	log_status_reply(reply, frame, frame_len);
 }
 
-void DytGimbal::handle_alt_frame(const uint8_t *frame, hrt_abstime now)
+void DytGimbal::publish_link_state(hrt_abstime now, uint8_t tracking_state)
 {
-	(void)frame;
-	_last_alt_rx_time = now;
-	++_alt_frame_counter;
-}
-
-void DytGimbal::maybe_log_target(const dyt_target_s &target, const uint8_t *frame)
-{
-	const int32_t log_period_ms = _param_dyt_log_ms.get();
-
-	if (log_period_ms <= 0) {
+	if (_last_state_publish != 0 && now - _last_state_publish < 100_ms) {
 		return;
 	}
 
-	const hrt_abstime log_period_us = static_cast<hrt_abstime>(log_period_ms) * 1000ULL;
+	dyt_target_s target = _last_target;
+	target.timestamp = now;
+	target.timestamp_sample = _last_servo_time;
+	target.tracking_state = tracking_state;
+	target.servo_status = tracking_state == dyt_target_s::TRACKING_STATE_TIMEOUT ?
+			      dyt_target_s::SERVO_STATUS_TIMEOUT : dyt_target_s::SERVO_STATUS_DATA_ERROR;
+	target.target_valid = false;
+	target.frame_counter = _frame_counter;
+	target.parse_error_count = _parse_error_count;
+	target.last_rx_age_s = _last_servo_time > 0 && now >= _last_servo_time ?
+			      (now - _last_servo_time) * 1e-6f : NAN;
+	_dyt_target_pub.publish(target);
+	_last_state_publish = now;
+}
 
-	if ((_last_target_log_time != 0) && ((target.timestamp - _last_target_log_time) < log_period_us)) {
+void DytGimbal::maybe_log_target(const dyt_target_s &target, uint8_t raw_tracking_state)
+{
+	const int32_t period_ms = _param_dyt_log_ms.get();
+
+	if (period_ms <= 0 || (_last_target_log_time != 0 &&
+	    target.timestamp - _last_target_log_time < static_cast<hrt_abstime>(period_ms) * 1000ULL)) {
 		return;
 	}
 
 	_last_target_log_time = target.timestamp;
-
-	const double range_m = PX4_ISFINITE(target.range_m) ? static_cast<double>(target.range_m) : -1.0;
-
-	PX4_INFO("DYT rx #%lu state=%u valid=%u los=(%.2f, %.2f) deg att=(%.2f, %.2f, %.2f) deg range=%.2f m zoom=%.1f bbox=%.0fx%.0f dt=%.3f s",
-		 static_cast<unsigned long>(target.frame_counter),
-		 static_cast<unsigned>(target.tracking_state),
-		 static_cast<unsigned>(target.target_valid),
-		 static_cast<double>(math::degrees(target.los_x_rad)),
-		 static_cast<double>(math::degrees(target.los_y_rad)),
-		 static_cast<double>(math::degrees(target.gimbal_roll_rad)),
-		 static_cast<double>(math::degrees(target.gimbal_pitch_rad)),
-		 static_cast<double>(math::degrees(target.gimbal_yaw_rad)),
-		 range_m,
-		 static_cast<double>(target.zoom_ratio),
-		 static_cast<double>(target.bbox_width_px),
-		 static_cast<double>(target.bbox_height_px),
-		 static_cast<double>(target.frame_dt_s));
-
-	maybe_log_raw_frame("DYT raw 0x16", frame, FIXED_FRAME_LEN);
-}
-
-void DytGimbal::maybe_log_target_geo(const uint8_t *frame, hrt_abstime now)
-{
-	const int32_t log_period_ms = _param_dyt_log_ms.get();
-
-	if (log_period_ms <= 0) {
-		return;
-	}
-
-	const hrt_abstime log_period_us = static_cast<hrt_abstime>(log_period_ms) * 1000ULL;
-
-	if ((_last_target_geo_log_time != 0) && ((now - _last_target_geo_log_time) < log_period_us)) {
-		return;
-	}
-
-	_last_target_geo_log_time = now;
-
-	const auto u32_at = [frame](size_t index) -> uint32_t {
-		return static_cast<uint32_t>(frame[index]) |
-		       (static_cast<uint32_t>(frame[index + 1]) << 8) |
-		       (static_cast<uint32_t>(frame[index + 2]) << 16) |
-		       (static_cast<uint32_t>(frame[index + 3]) << 24);
-	};
-
-	const auto s16_at = [frame](size_t index) -> int16_t {
-		return static_cast<int16_t>(static_cast<uint16_t>(frame[index]) |
-				       (static_cast<uint16_t>(frame[index + 1]) << 8));
-	};
-
-	const int32_t lat_raw = static_cast<int32_t>(u32_at(2));
-	const int32_t lon_raw = static_cast<int32_t>(u32_at(6));
-
-	PX4_INFO("DYT geo lat=%.7f lon=%.7f alt=%.1f m rel_alt=%.1f m time=%04u-%02u-%02u %02u:%02u:%02u.%02u",
-		 static_cast<double>(lat_raw) * 1e-7,
-		 static_cast<double>(lon_raw) * 1e-7,
-		 static_cast<double>(s16_at(10)) * 0.2,
-		 static_cast<double>(s16_at(12)) * 0.2,
-		 static_cast<unsigned>(frame[14]) + 2000U,
-		 static_cast<unsigned>(frame[15]),
-		 static_cast<unsigned>(frame[16]),
-		 static_cast<unsigned>(frame[17]),
-		 static_cast<unsigned>(frame[18]),
-		 static_cast<unsigned>(frame[19]),
-		 static_cast<unsigned>(frame[20]));
-
-	maybe_log_raw_frame("DYT raw 0x18", frame, FIXED_FRAME_LEN);
-}
-
-void DytGimbal::log_status_reply(const dyt_status_reply_s &reply, const uint8_t *frame, size_t frame_len)
-{
-	if ((reply.control_code == 0x3a) && (reply.param_length >= 2)) {
-		PX4_INFO("DYT reply ctrl=0x%02x(%s) geotrack_cmd=0x%02x(%s) status=%u",
-			 static_cast<unsigned>(reply.control_code),
-			 control_name(reply.control_code),
-			 static_cast<unsigned>(reply.params[0]),
-			 geotrack_cmd_name(reply.params[0]),
-			 static_cast<unsigned>(reply.params[1]));
-
-	} else if ((reply.control_code == 0xb0) && (reply.param_length >= 1)) {
-		PX4_INFO("DYT reply ctrl=0x%02x(%s) lift_state=0x%02x(%s)",
-			 static_cast<unsigned>(reply.control_code),
-			 control_name(reply.control_code),
-			 static_cast<unsigned>(reply.params[0]),
-			 lift_state_name(reply.params[0]));
-
-	} else {
-		PX4_INFO("DYT reply ctrl=0x%02x(%s) len=%u p0=0x%02x p1=0x%02x",
-			 static_cast<unsigned>(reply.control_code),
-			 control_name(reply.control_code),
-			 static_cast<unsigned>(reply.param_length),
-			 static_cast<unsigned>(reply.params[0]),
-			 static_cast<unsigned>(reply.params[1]));
-	}
-
-	maybe_log_raw_frame("DYT raw 0x19", frame, frame_len);
+	PX4_INFO("DYT V2 state=%u raw=0x%02x valid=%u los=(%.3f,%.3f) deg bbox=(%.0f,%.0f) px gimbal=(%.2f,%.2f,%.2f) deg dt=%.3f",
+		 static_cast<unsigned>(target.tracking_state), static_cast<unsigned>(raw_tracking_state),
+		 static_cast<unsigned>(target.target_valid), static_cast<double>(math::degrees(target.los_x_rad)),
+		 static_cast<double>(math::degrees(target.los_y_rad)), static_cast<double>(target.bbox_width_px),
+		 static_cast<double>(target.bbox_height_px), static_cast<double>(math::degrees(target.gimbal_roll_rad)),
+		 static_cast<double>(math::degrees(target.gimbal_pitch_frame_rad)),
+		 static_cast<double>(math::degrees(target.gimbal_yaw_rad)), static_cast<double>(target.frame_dt_s));
 }
 
 void DytGimbal::maybe_log_raw_frame(const char *label, const uint8_t *frame, size_t frame_len)
@@ -878,11 +822,10 @@ void DytGimbal::maybe_log_raw_frame(const char *label, const uint8_t *frame, siz
 	char line[MAX_FRAME_LEN * 3 + 1]{};
 	size_t offset = 0;
 
-	for (size_t i = 0; i < frame_len; ++i) {
-		const int written = snprintf(&line[offset], sizeof(line) - offset, "%02X%s",
-					     frame[i], (i + 1 < frame_len) ? " " : "");
+	for (size_t i = 0; i < frame_len && offset < sizeof(line); ++i) {
+		const int written = snprintf(&line[offset], sizeof(line) - offset, "%02X%s", frame[i], i + 1 < frame_len ? " " : "");
 
-		if ((written <= 0) || (static_cast<size_t>(written) >= (sizeof(line) - offset))) {
+		if (written <= 0 || static_cast<size_t>(written) >= sizeof(line) - offset) {
 			break;
 		}
 
@@ -892,205 +835,461 @@ void DytGimbal::maybe_log_raw_frame(const char *label, const uint8_t *frame, siz
 	PX4_INFO("%s: %s", label, line);
 }
 
-const char *DytGimbal::control_name(uint8_t control) const
-{
-	switch (control) {
-	case 0x07: return "target_detect_on";
-	case 0x0d: return "point_track";
-	case 0x0e: return "stop_track";
-	case 0x0f: return "auto_lock";
-	case 0x24: return "search";
-	case 0x25: return "zoom_rate";
-	case 0x26: return "set_frame_angle";
-	case 0x27: return "motor_on";
-	case 0x28: return "motor_off";
-	case 0x29: return "follow_off";
-	case 0x2a: return "yaw_follow";
-	case 0x2b: return "center";
-	case 0x2d: return "laser_on";
-	case 0x2e: return "laser_off";
-	case 0x30: return "elect_lock";
-	case 0x31: return "elect_unlock";
-	case 0x39: return "gyro_calib";
-	case 0x3a: return "geo_track";
-	case 0x3b: return "set_space_angle";
-	case 0x4a: return "image_board_power";
-	case 0x5a: return "set_zoom";
-	case 0x5b: return "capture";
-	case 0x5c: return "focus_mode";
-	case 0x5d: return "focus_position";
-	case 0x60: return "shutter_auto";
-	case 0x61: return "shutter_manual";
-	case 0xb0: return "lift_control";
-	default: return "unknown";
-	}
-}
-
-const char *DytGimbal::geotrack_cmd_name(uint8_t command) const
-{
-	switch (command) {
-	case 0x00: return "exit";
-	case 0x01: return "center_point";
-	case 0x02: return "target_point";
-	case 0x0a: return "target_calib";
-	default: return "unknown";
-	}
-}
-
-const char *DytGimbal::lift_state_name(uint8_t state) const
-{
-	switch (state) {
-	case 0x00: return "stop";
-	case 0x01: return "up";
-	case 0x02: return "down";
-	case 0x03: return "up_limit";
-	case 0x04: return "down_limit";
-	case 0xff: return "error";
-	default: return "unknown";
-	}
-}
-
-void DytGimbal::publish_link_state(hrt_abstime now, uint8_t tracking_state)
-{
-	if ((now - _last_state_publish) < 100_ms) {
-		return;
-	}
-
-	dyt_target_s target = _last_target;
-	target.timestamp = now;
-	target.tracking_state = tracking_state;
-	target.target_valid = false;
-	target.timestamp_sample = _last_rx_time;
-	target.frame_counter = _frame_counter;
-	target.parse_error_count = _parse_error_count;
-
-	if (_last_rx_time > 0) {
-		target.last_rx_age_s = (now >= _last_rx_time) ? (now - _last_rx_time) * 1e-6f : 0.f;
-
-	} else {
-		target.last_rx_age_s = NAN;
-	}
-
-	_dyt_target_pub.publish(target);
-	_last_state_publish = now;
-}
-
 void DytGimbal::handle_command_updates()
 {
 	dyt_command_s cmd{};
 
-	while (_dyt_command_sub.update(&cmd)) {
-		_startup_home_canceled = true;
-		send_protocol_command(cmd);
-	}
-}
-
-void DytGimbal::send_startup_home_if_needed(hrt_abstime now)
-{
-	if (_startup_home_sent || _startup_home_canceled || _uart_fd < 0 || _param_dyt_home_en.get() == 0) {
-		return;
-	}
-
-	if (_startup_home_time == 0 || _startup_home_next_time == 0 || now < _startup_home_next_time) {
-		return;
-	}
-
-	const int16_t yaw_cmd = angle_deg_to_cdeg(_param_dyt_home_yaw_deg.get());
-	const int16_t pitch_cmd = angle_deg_to_cdeg(_param_dyt_home_pitch_deg.get());
-	send_command_frame(0x26, yaw_cmd, pitch_cmd, 0, 0);
-	++_startup_home_count;
-
-	PX4_INFO("startup home angle sent yaw=%.1f pitch=%.1f count=%lu",
-		 static_cast<double>(yaw_cmd) * 0.01,
-		 static_cast<double>(pitch_cmd) * 0.01,
-		 static_cast<unsigned long>(_startup_home_count));
-
-	const int32_t interval_ms = math::constrain(_param_dyt_home_interval_ms.get(), int32_t{100}, int32_t{5000});
-	_startup_home_next_time = now + static_cast<hrt_abstime>(interval_ms) * 1000ULL;
-
-	if (_startup_home_end_time == 0 || _startup_home_next_time > _startup_home_end_time) {
+	while (_tx_queue_count <= TX_QUEUE_DEPTH - MAX_TX_FRAMES_PER_COMMAND && _dyt_command_sub.update(&cmd)) {
 		_startup_home_sent = true;
+		send_protocol_command(cmd);
+
+		if (_uart_fd < 0 || cmd.command == dyt_command_s::CMD_DETECTION_START) {
+			break;
+		}
 	}
 }
 
 void DytGimbal::send_protocol_command(const dyt_command_s &cmd)
 {
+	_last_command = cmd.command;
+	bool send_mode = false;
+	const bool tracking_mode_guard_active = hrt_absolute_time() < _tracking_mode_guard_until;
+
 	switch (cmd.command) {
-	case dyt_command_s::CMD_AUTO_LOCK: {
-			const int16_t param_x = (cmd.param_x != 0) ? cmd.param_x : -100;
-			send_command_frame(0x07, 0, 0, 0, 0);
-			send_command_frame(0x0F, param_x, cmd.param_y, cmd.param3, cmd.zoom_rate);
-		}
+	case dyt_command_s::CMD_AUTO_LOCK:
+		set_tracking_mode(0, 0);
+		send_mode = true;
 		break;
 
 	case dyt_command_s::CMD_STOP_TRACK:
-		send_command_frame(0x24, 0, 0, 0, 0);
-		send_command_frame(0x0E, cmd.param_x, cmd.param_y, cmd.param3, cmd.zoom_rate);
-		break;
-
-	case dyt_command_s::CMD_NOFOLLOW:
-		send_command_frame(0x29, cmd.param_x, cmd.param_y, cmd.param3, cmd.zoom_rate);
-		break;
-
-	case dyt_command_s::CMD_YAW_FOLLOW:
-		send_command_frame(0x2A, cmd.param_x, cmd.param_y, cmd.param3, cmd.zoom_rate);
-		break;
-
-	case dyt_command_s::CMD_ELECT_LOCK:
-		send_command_frame(0x30, cmd.param_x, cmd.param_y, cmd.param3, cmd.zoom_rate);
-		break;
-
-	case dyt_command_s::CMD_ELECT_UNLOCK:
-		send_command_frame(0x31, cmd.param_x, cmd.param_y, cmd.param3, cmd.zoom_rate);
-		break;
-
-	case dyt_command_s::CMD_LOCK_VIEW:
-		send_command_frame(0x29, 0, 0, 0, 0);
-		usleep(CENTER_SEQUENCE_DELAY_US);
-		send_command_frame(0x30, 0, 0, 0, 0);
-		break;
-
-	case dyt_command_s::CMD_CENTER:
-		send_center_sequence();
-		break;
-
-	case dyt_command_s::CMD_CENTER_GIMBAL:
-		send_command_frame(0x24, 0, 0, 0, 0);
-		send_command_frame(0x0E, 0, 0, 0, 0);
-		usleep(CENTER_SEQUENCE_DELAY_US);
-		send_command_frame(0x26, cmd.param_x, cmd.param_y, cmd.param3, cmd.zoom_rate);
-		break;
-
-	case dyt_command_s::CMD_SET_FRAME_ANGLE:
-		send_command_frame(0x26, cmd.param_x, cmd.param_y, cmd.param3, cmd.zoom_rate);
-		break;
-
-	case dyt_command_s::CMD_SEARCH_RATE:
-		send_command_frame(0x24, cmd.param_x, cmd.param_y, cmd.param3, cmd.zoom_rate);
-		break;
-
-	case dyt_command_s::CMD_SEND_OWNSHIP_STATE:
-		send_ownship_state_frame(cmd);
-		break;
-
-	case dyt_command_s::CMD_GEO_TRACK:
-		send_geo_track_frame(0x02, cmd.lat, cmd.lon, cmd.alt);
-		break;
-
-	case dyt_command_s::CMD_GEO_TRACK_EXIT:
-		send_geo_track_frame(0x00, 0.0, 0.0, 0.f);
+		send_tracker_command(0x27);
+		set_angle_mode(0.f, 0.f);
+		send_mode = true;
 		break;
 
 	case dyt_command_s::CMD_RETRIGGER:
-		send_command_frame(0x24, 0, 0, 0, 0);
-		send_command_frame(0x0E, 0, 0, 0, 0);
-		send_command_frame(0x07, 0, 0, 0, 0);
-		send_command_frame(0x0F, (cmd.param_x != 0) ? cmd.param_x : -100, cmd.param_y, cmd.param3, cmd.zoom_rate);
+		send_tracker_command(0x27);
+		send_tracker_command(TRACKER_ASSIST_ENABLE);
+		set_tracking_mode(0, 0);
+		send_mode = true;
+		break;
+
+	case dyt_command_s::CMD_NOFOLLOW:
+	case dyt_command_s::CMD_LOCK_VIEW:
+		if (!tracking_mode_guard_active) {
+			set_mode(MODE_LOCK);
+			send_mode = true;
+		}
+		break;
+
+	case dyt_command_s::CMD_YAW_FOLLOW:
+		if (!tracking_mode_guard_active) {
+			set_mode(MODE_FOLLOW_ANGLE);
+			send_mode = true;
+		}
+		break;
+
+	case dyt_command_s::CMD_CENTER:
+		if (!tracking_mode_guard_active) {
+			set_mode(MODE_HOME);
+			send_mode = true;
+		}
+		break;
+
+	case dyt_command_s::CMD_CENTER_GIMBAL:
+		if (!tracking_mode_guard_active) {
+			set_angle_mode(static_cast<float>(cmd.param_x) * 0.01f, static_cast<float>(cmd.param_y) * 0.01f);
+			send_mode = true;
+		}
+		break;
+
+	case dyt_command_s::CMD_SET_FRAME_ANGLE:
+		if (!tracking_mode_guard_active) {
+			set_angle_mode(static_cast<float>(cmd.param_x) * 0.01f, static_cast<float>(cmd.param_y) * 0.01f);
+			send_mode = true;
+		}
+		break;
+
+	case dyt_command_s::CMD_SET_INERTIAL_ANGLE:
+		// This gimbal protocol has no inertial-space attitude guidance command.
+		break;
+
+	case dyt_command_s::CMD_SEARCH_RATE:
+		if (!tracking_mode_guard_active) {
+			set_scan_mode(cmd);
+			send_mode = true;
+		}
+		break;
+
+	case dyt_command_s::CMD_SEND_OWNSHIP_STATE:
+		send_flight_data(cmd);
+		break;
+
+	case dyt_command_s::CMD_GEO_TRACK:
+		if (!tracking_mode_guard_active) {
+			set_geo_mode(cmd.lat, cmd.lon, cmd.alt);
+			send_mode = true;
+		}
+		break;
+
+	case dyt_command_s::CMD_GEO_TRACK_EXIT:
+		if (!tracking_mode_guard_active) {
+			set_mode(MODE_LOCK);
+			send_mode = true;
+		}
+		break;
+
+	case dyt_command_s::CMD_TRACK_POINT:
+		set_tracking_mode(cmd.param_x, cmd.param_y);
+		send_mode = true;
+		break;
+
+	case dyt_command_s::CMD_AI_ENABLE:
+		send_tracker_command(TRACKER_AI_ENABLE);
+		break;
+
+	case dyt_command_s::CMD_AI_DISABLE:
+		send_tracker_command(TRACKER_AI_DISABLE);
+		break;
+
+	case dyt_command_s::CMD_TARGET_TYPE:
+		if (cmd.value >= 1 && cmd.value <= 3) {
+			send_tracker_u16_command(TRACKER_TARGET_TYPE, static_cast<uint16_t>(cmd.value));
+		}
+		break;
+
+	case dyt_command_s::CMD_ASSIST_ENABLE:
+		send_tracker_command(TRACKER_ASSIST_ENABLE);
+		break;
+
+	case dyt_command_s::CMD_ASSIST_DISABLE:
+		send_tracker_command(TRACKER_ASSIST_DISABLE);
+		break;
+
+	case dyt_command_s::CMD_TRACK_ID:
+		send_tracker_command(TRACKER_TARGET_ID, cmd.value);
+		break;
+
+	case dyt_command_s::CMD_IMAGE_MODE: {
+		if (cmd.value <= 9) {
+			const uint16_t image_mode = static_cast<uint16_t>(cmd.value);
+
+			if (send_tracker_u16_command(TRACKER_IMAGE_MODE, image_mode)) {
+				if (image_mode == IMAGE_MODE_VISIBLE || image_mode == IMAGE_MODE_INFRARED) {
+					_requested_image_status = image_mode == IMAGE_MODE_INFRARED ?
+								  IMAGE_STATUS_INFRARED : IMAGE_STATUS_VISIBLE;
+					_image_source_confirmation_pending = true;
+					_image_source_confirmation_warned = false;
+					_image_source_request_time = hrt_absolute_time();
+				}
+			}
+		}
+		break;
+	}
+
+	case dyt_command_s::CMD_OSD_ENABLE:
+		send_tracker_command(TRACKER_OSD_ENABLE);
+		break;
+
+	case dyt_command_s::CMD_OSD_DISABLE:
+		send_tracker_command(TRACKER_OSD_DISABLE);
+		break;
+
+	case dyt_command_s::CMD_DETECTION_START:
+		_detection_start_pending = true;
+		_detection_start_tx_offset = 0;
 		break;
 
 	default:
 		break;
 	}
+
+	if (send_mode) {
+		const bool mode_sent = send_mode_once();
+
+		if (mode_sent && _mode_control == MODE_TRACK) {
+			const int32_t lock_hold_ms = math::constrain(_param_dyt_lock_hold_ms.get(), int32_t{100}, int32_t{10000});
+			_tracking_mode_guard_until = hrt_absolute_time() + static_cast<hrt_abstime>(lock_hold_ms) * 1000ULL;
+		}
+	}
+}
+
+void DytGimbal::set_mode(uint8_t control)
+{
+	_mode_control = control;
+	_mode_selection = 0;
+	memset(_mode_params, 0, sizeof(_mode_params));
+
+	if (control != MODE_TRACK) {
+		_tracking_mode_guard_until = 0;
+	}
+}
+
+void DytGimbal::set_angle_mode(float yaw_deg, float pitch_deg)
+{
+	set_mode(MODE_FOLLOW_ANGLE);
+	put_be_float(_mode_params, 0, math::constrain(yaw_deg, -180.f, 180.f));
+	put_be_float(_mode_params, 4, math::constrain(pitch_deg, -90.f, 90.f));
+}
+
+void DytGimbal::set_tracking_mode(int16_t x_px, int16_t y_px)
+{
+	set_mode(MODE_TRACK);
+	_mode_selection = 0x00;
+	put_be_u16(_mode_params, 0, static_cast<uint16_t>(x_px));
+	put_be_u16(_mode_params, 2, static_cast<uint16_t>(y_px));
+}
+
+void DytGimbal::set_scan_mode(const dyt_command_s &cmd)
+{
+	set_mode(MODE_SCAN);
+	_mode_selection = 0x01;
+	const float yaw_boundary = math::constrain(static_cast<float>(cmd.param_x) * 0.01f, -180.f, 180.f);
+	const float pitch_boundary = math::constrain(static_cast<float>(cmd.param_y) * 0.01f, -90.f, 90.f);
+	put_be_float(_mode_params, 0, -fabsf(yaw_boundary));
+	put_be_float(_mode_params, 4, fabsf(yaw_boundary));
+	put_be_float(_mode_params, 8, fabsf(pitch_boundary));
+}
+
+void DytGimbal::set_geo_mode(double lat_deg, double lon_deg, float alt_m)
+{
+	if (!PX4_ISFINITE(static_cast<float>(lat_deg)) || !PX4_ISFINITE(static_cast<float>(lon_deg)) || !PX4_ISFINITE(alt_m) ||
+	    lat_deg < -90.0 || lat_deg > 90.0 || lon_deg < -180.0 || lon_deg > 180.0) {
+		return;
+	}
+
+	set_mode(MODE_GEO_FOLLOW);
+	put_be_float(_mode_params, 0, static_cast<float>(lon_deg));
+	put_be_float(_mode_params, 4, static_cast<float>(lat_deg));
+	put_be_u16(_mode_params, 8, static_cast<uint16_t>(math::constrain(static_cast<int>(roundf(alt_m)), -32768, 32767)));
+}
+
+bool DytGimbal::send_mode_once()
+{
+	if (_uart_fd < 0) {
+		return false;
+	}
+
+	uint8_t frame[MODE_FRAME_LEN]{};
+	frame[0] = SYNC_1;
+	frame[1] = SYNC_2;
+	frame[2] = MODE_FRAME_DATA_LEN;
+	frame[3] = FRAME_ID_MODE;
+	frame[4] = _mode_control;
+	frame[11] = _mode_selection;
+	memcpy(&frame[12], _mode_params, sizeof(_mode_params));
+	frame[MODE_FRAME_LEN - 1] = checksum8(frame, MODE_FRAME_LEN - 1);
+	return write_frame(frame, sizeof(frame));
+}
+
+bool DytGimbal::send_tracker_command(uint8_t control, uint32_t value)
+{
+	uint8_t frame[TRACKER_FRAME_LEN]{};
+	frame[0] = SYNC_1;
+	frame[1] = SYNC_2;
+	frame[2] = TRACKER_FRAME_DATA_LEN;
+	frame[3] = FRAME_ID_TRACKER;
+	frame[4] = control;
+	put_be_u32(frame, 5, value);
+	frame[TRACKER_FRAME_LEN - 1] = checksum8(frame, TRACKER_FRAME_LEN - 1);
+	return write_frame(frame, sizeof(frame));
+}
+
+bool DytGimbal::send_tracker_u16_command(uint8_t control, uint16_t value)
+{
+	uint8_t frame[TRACKER_FRAME_LEN]{};
+	frame[0] = SYNC_1;
+	frame[1] = SYNC_2;
+	frame[2] = TRACKER_FRAME_DATA_LEN;
+	frame[3] = FRAME_ID_TRACKER;
+	frame[4] = control;
+	put_be_u16(frame, 5, value);
+	frame[TRACKER_FRAME_LEN - 1] = checksum8(frame, TRACKER_FRAME_LEN - 1);
+	return write_frame(frame, sizeof(frame));
+}
+
+bool DytGimbal::send_flight_data(const dyt_command_s &cmd)
+{
+	if (!PX4_ISFINITE(static_cast<float>(cmd.lat)) || !PX4_ISFINITE(static_cast<float>(cmd.lon)) || !PX4_ISFINITE(cmd.alt) ||
+	    !PX4_ISFINITE(cmd.rel_alt) || !PX4_ISFINITE(cmd.roll_rad) || !PX4_ISFINITE(cmd.pitch_rad) ||
+	    !PX4_ISFINITE(cmd.yaw_rad) || cmd.lat < -90.0 || cmd.lat > 90.0 || cmd.lon < -180.0 || cmd.lon > 180.0) {
+		return false;
+	}
+
+	uint8_t frame[FLIGHT_DATA_FRAME_LEN]{};
+	frame[0] = SYNC_1;
+	frame[1] = SYNC_2;
+	frame[2] = 0x26;
+	frame[3] = FRAME_ID_FLIGHT_DATA;
+	frame[4] = 0x01;
+	put_be_float(frame, 5, math::degrees(cmd.yaw_rad));
+	put_be_float(frame, 9, math::degrees(cmd.pitch_rad));
+	put_be_float(frame, 13, math::degrees(cmd.roll_rad));
+	put_be_float(frame, 17, static_cast<float>(cmd.lon));
+	put_be_float(frame, 21, static_cast<float>(cmd.lat));
+	put_be_float(frame, 25, cmd.alt);
+	put_be_float(frame, 29, cmd.rel_alt);
+
+	time_t unix_time = time(nullptr);
+	struct tm utc {};
+
+	if (unix_time > 946684800 && gmtime_r(&unix_time, &utc) != nullptr) {
+		put_be_u16(frame, 33, static_cast<uint16_t>(utc.tm_year + 1900));
+		frame[35] = static_cast<uint8_t>(utc.tm_mon + 1);
+		frame[36] = static_cast<uint8_t>(utc.tm_mday);
+		frame[37] = static_cast<uint8_t>(utc.tm_hour);
+		frame[38] = static_cast<uint8_t>(utc.tm_min);
+		put_be_u16(frame, 39, static_cast<uint16_t>(utc.tm_sec * 1000));
+	}
+
+	frame[FLIGHT_DATA_FRAME_LEN - 1] = checksum8(frame, FLIGHT_DATA_FRAME_LEN - 1);
+	return write_frame(frame, sizeof(frame));
+}
+
+bool DytGimbal::write_frame(const uint8_t *buffer, size_t buffer_len)
+{
+	if (_uart_fd < 0 || buffer == nullptr || buffer_len == 0 || buffer_len > MAX_FRAME_LEN) {
+		return false;
+	}
+
+	if (_tx_queue_count >= TX_QUEUE_DEPTH) {
+		_last_write_result = -1;
+		_last_write_errno = ENOSPC;
+		++_write_error_count;
+		return false;
+	}
+
+	TxFrame &frame = _tx_queue[_tx_queue_tail];
+	memcpy(frame.data, buffer, buffer_len);
+	frame.length = static_cast<uint16_t>(buffer_len);
+	frame.offset = 0;
+	_tx_queue_tail = (_tx_queue_tail + 1) % TX_QUEUE_DEPTH;
+	++_tx_queue_count;
+
+	return drain_tx_queue();
+}
+
+bool DytGimbal::drain_tx_queue()
+{
+	if (_uart_fd < 0) {
+		return false;
+	}
+
+	// Bound the number of write calls per work-queue cycle. Short writes retain
+	// their offset, and the next frame cannot start until the current one finishes.
+	for (unsigned writes = 0; writes < 8 && _tx_queue_count > 0; ++writes) {
+		TxFrame &frame = _tx_queue[_tx_queue_head];
+		const size_t remaining = static_cast<size_t>(frame.length - frame.offset);
+		const ssize_t written = ::write(_uart_fd, frame.data + frame.offset, remaining);
+		_last_write_result = static_cast<int>(written);
+
+		if (written > 0) {
+			frame.offset += static_cast<uint16_t>(written);
+			_last_write_errno = 0;
+
+			if (frame.offset == frame.length) {
+				++_command_tx_count;
+				maybe_log_raw_frame("DYT V2 tx", frame.data, frame.length);
+				frame.length = 0;
+				frame.offset = 0;
+				_tx_queue_head = (_tx_queue_head + 1) % TX_QUEUE_DEPTH;
+				--_tx_queue_count;
+			}
+
+			continue;
+		}
+
+		if (written == 0 || (written < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK))) {
+			_last_write_errno = written == 0 ? EAGAIN : errno;
+			return true;
+		}
+
+		_last_write_errno = errno;
+		++_write_error_count;
+		close_serial();
+		return false;
+	}
+
+	return true;
+}
+
+void DytGimbal::reset_tx_queue()
+{
+	_tx_queue_head = 0;
+	_tx_queue_tail = 0;
+	_tx_queue_count = 0;
+}
+
+bool DytGimbal::send_detection_start_if_needed()
+{
+	if (!_detection_start_pending) {
+		return true;
+	}
+
+	if (_uart_fd < 0) {
+		return false;
+	}
+
+	// 55 AA 0A 04 2B 00 01 00 00 00 00 00 00 DB
+	static constexpr uint8_t detection_start_frame[TRACKER_FRAME_LEN] {
+		SYNC_1, SYNC_2, TRACKER_FRAME_DATA_LEN, FRAME_ID_TRACKER, TRACKER_DETECTION_START,
+		0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDB
+	};
+
+	while (_detection_start_tx_offset < sizeof(detection_start_frame)) {
+		const ssize_t written = ::write(_uart_fd, detection_start_frame + _detection_start_tx_offset,
+						  sizeof(detection_start_frame) - _detection_start_tx_offset);
+		_last_write_result = static_cast<int>(written);
+
+		if (written > 0) {
+			_detection_start_tx_offset += static_cast<size_t>(written);
+			continue;
+		}
+
+		if (written == 0 || (written < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK))) {
+			_last_write_errno = written == 0 ? EAGAIN : errno;
+			return false;
+		}
+
+		_last_write_errno = written < 0 ? errno : 0;
+		++_write_error_count;
+		_detection_start_tx_offset = 0;
+		close_serial();
+		return false;
+	}
+
+	_detection_start_pending = false;
+	_detection_start_tx_offset = 0;
+	_last_write_errno = 0;
+	++_command_tx_count;
+	maybe_log_raw_frame("DYT V2 tx", detection_start_frame, sizeof(detection_start_frame));
+	PX4_INFO("target detection started on arm");
+	return true;
+}
+
+void DytGimbal::request_software_version_if_needed(hrt_abstime now)
+{
+	if (_software_version_valid || _software_version_request_count >= SOFTWARE_VERSION_MAX_REQUESTS ||
+	    (_last_software_version_request != 0 &&
+	     now - _last_software_version_request < SOFTWARE_VERSION_RETRY_INTERVAL)) {
+		return;
+	}
+
+	if (send_tracker_command(TRACKER_SOFTWARE_VERSION_READ)) {
+		_last_software_version_request = now;
+		++_software_version_request_count;
+	}
+}
+
+void DytGimbal::send_startup_home_if_needed(hrt_abstime now)
+{
+	if (_startup_home_sent || _param_dyt_home_en.get() <= 0 || now < _startup_home_time) {
+		return;
+	}
+
+	set_angle_mode(_param_dyt_home_yaw_deg.get(), _param_dyt_home_pitch_deg.get());
+	send_mode_once();
+	_startup_home_sent = true;
 }
 
 void DytGimbal::publish_shell_command(uint8_t command)
@@ -1098,301 +1297,166 @@ void DytGimbal::publish_shell_command(uint8_t command)
 	dyt_command_s cmd{};
 	cmd.timestamp = hrt_absolute_time();
 	cmd.command = command;
-
-	if (command == dyt_command_s::CMD_AUTO_LOCK || command == dyt_command_s::CMD_RETRIGGER) {
-		cmd.param_x = -100;
-	}
-
 	_dyt_command_pub.publish(cmd);
 }
 
-void DytGimbal::send_center_sequence()
+void DytGimbal::publish_shell_angle_command(float yaw_deg, float pitch_deg)
 {
-	send_command_frame(0x0E, 0, 0, 0, 0);
-	usleep(CENTER_SEQUENCE_DELAY_US);
-	send_command_frame(0x29, 0, 0, 0, 0);
-	usleep(CENTER_SEQUENCE_DELAY_US);
-	send_command_frame(0x31, 0, 0, 0, 0);
-	usleep(CENTER_SEQUENCE_DELAY_US);
-	send_command_frame(0x2B, 0, 0, 0, 0);
-	usleep(CENTER_SEQUENCE_DELAY_US);
-	send_command_frame(0x30, 0, 0, 0, 0);
+	dyt_command_s cmd{};
+	cmd.timestamp = hrt_absolute_time();
+	cmd.command = dyt_command_s::CMD_SET_FRAME_ANGLE;
+	cmd.param_x = angle_deg_to_cdeg(yaw_deg);
+	cmd.param_y = angle_deg_to_cdeg(pitch_deg);
+	_dyt_command_pub.publish(cmd);
 }
 
-int16_t DytGimbal::angle_deg_to_cdeg(float angle_deg) const
+void DytGimbal::publish_shell_track_point_command(int16_t x_px, int16_t y_px)
 {
-	if (!PX4_ISFINITE(angle_deg)) {
-		angle_deg = 0.f;
-	}
-
-	const float limited_deg = math::constrain(angle_deg, -180.f, 180.f);
-	return static_cast<int16_t>(roundf(limited_deg * 100.f));
+	dyt_command_s cmd{};
+	cmd.timestamp = hrt_absolute_time();
+	cmd.command = dyt_command_s::CMD_TRACK_POINT;
+	cmd.param_x = x_px;
+	cmd.param_y = y_px;
+	_dyt_command_pub.publish(cmd);
 }
 
-bool DytGimbal::write_command_buffer(const uint8_t *buffer, size_t buffer_len)
+void DytGimbal::publish_shell_value_command(uint8_t command, uint32_t value)
 {
-	size_t written_total = 0;
-	_last_write_errno = 0;
-	_last_write_result = 0;
-
-	const hrt_abstime deadline = hrt_absolute_time() + 100_ms;
-
-	while (written_total < buffer_len) {
-		const ssize_t written = ::write(_uart_fd, buffer + written_total, buffer_len - written_total);
-		_last_write_result = static_cast<int>(written);
-
-		if (written > 0) {
-			written_total += static_cast<size_t>(written);
-			continue;
-		}
-
-		if (written < 0) {
-			_last_write_errno = errno;
-
-			if ((errno == EINTR) || (errno == EAGAIN)
-#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
-			    || (errno == EWOULDBLOCK)
-#endif
-			   ) {
-				if (hrt_absolute_time() < deadline) {
-					usleep(1000);
-					continue;
-				}
-			}
-
-			return false;
-		}
-
-		if (hrt_absolute_time() >= deadline) {
-			return false;
-		}
-
-		usleep(1000);
-	}
-
-	(void)tcdrain(_uart_fd);
-	_last_write_result = static_cast<int>(written_total);
-	return true;
-}
-
-void DytGimbal::send_command_frame(uint8_t control, int16_t param_x, int16_t param_y, uint8_t param3, int8_t zoom_rate)
-{
-	if (_uart_fd < 0) {
-		return;
-	}
-
-	uint8_t buffer[COMMAND_LEN]{};
-	buffer[0] = 0xEB;
-	buffer[1] = 0x90;
-	buffer[2] = control;
-	buffer[3] = static_cast<uint8_t>(param_x & 0xFF);
-	buffer[4] = static_cast<uint8_t>((param_x >> 8) & 0xFF);
-	buffer[5] = static_cast<uint8_t>(param_y & 0xFF);
-	buffer[6] = static_cast<uint8_t>((param_y >> 8) & 0xFF);
-	buffer[7] = param3;
-	buffer[8] = static_cast<uint8_t>(zoom_rate);
-
-	buffer[COMMAND_LEN - 1] = checksum8(buffer, COMMAND_LEN - 1);
-
-	if (!write_command_buffer(buffer, sizeof(buffer))) {
-		++_write_error_count;
-		PX4_WARN("DYT tx 0x%02x failed result=%d errno=%d",
-			 static_cast<unsigned>(control), _last_write_result, _last_write_errno);
-
-	} else {
-		++_command_tx_count;
-		_last_command_control = control;
-		_last_command_time = hrt_absolute_time();
-	}
-}
-
-void DytGimbal::put_u16_le(uint8_t *buffer, size_t index, uint16_t value)
-{
-	buffer[index] = static_cast<uint8_t>(value & 0xff);
-	buffer[index + 1] = static_cast<uint8_t>((value >> 8) & 0xff);
-}
-
-void DytGimbal::put_u32_le(uint8_t *buffer, size_t index, uint32_t value)
-{
-	buffer[index] = static_cast<uint8_t>(value & 0xff);
-	buffer[index + 1] = static_cast<uint8_t>((value >> 8) & 0xff);
-	buffer[index + 2] = static_cast<uint8_t>((value >> 16) & 0xff);
-	buffer[index + 3] = static_cast<uint8_t>((value >> 24) & 0xff);
-}
-
-int16_t DytGimbal::scaled_s16(float value, float scale, float min_value, float max_value)
-{
-	if (!PX4_ISFINITE(value)) {
-		value = 0.f;
-	}
-
-	const float limited = math::constrain(value, min_value, max_value);
-	return static_cast<int16_t>(roundf(limited * scale));
-}
-
-uint16_t DytGimbal::scaled_u16(float value, float scale, float max_value)
-{
-	if (!PX4_ISFINITE(value) || value < 0.f) {
-		value = 0.f;
-	}
-
-	const float limited = math::min(value, max_value);
-	return static_cast<uint16_t>(roundf(limited * scale));
-}
-
-int32_t DytGimbal::geo_deg_to_e7(double deg, double min_deg, double max_deg)
-{
-	if (!PX4_ISFINITE(static_cast<float>(deg))) {
-		deg = 0.0;
-	}
-
-	const double limited = math::constrain(deg, min_deg, max_deg);
-	return static_cast<int32_t>(round(limited * 1e7));
+	dyt_command_s cmd{};
+	cmd.timestamp = hrt_absolute_time();
+	cmd.command = command;
+	cmd.value = value;
+	_dyt_command_pub.publish(cmd);
 }
 
 uint8_t DytGimbal::checksum8(const uint8_t *buffer, size_t checksum_index)
 {
-	uint8_t checksum = 0;
+	uint8_t checksum = 0xFF;
 
-	for (size_t i = 0; i < checksum_index; ++i) {
-		checksum = static_cast<uint8_t>(checksum + buffer[i]);
+	for (size_t i = 2; i < checksum_index; ++i) {
+		checksum ^= buffer[i];
 	}
 
 	return checksum;
 }
 
-void DytGimbal::send_geo_track_frame(uint8_t state, double lat_deg, double lon_deg, float alt_m)
+uint16_t DytGimbal::read_be_u16(const uint8_t *buffer, size_t index)
 {
-	if (_uart_fd < 0) {
-		return;
-	}
-
-	uint8_t buffer[COMMAND_LEN]{};
-	buffer[0] = 0xEB;
-	buffer[1] = 0x90;
-	buffer[2] = 0x3A;
-	buffer[3] = state;
-	put_u32_le(buffer, 4, static_cast<uint32_t>(geo_deg_to_e7(lat_deg, -90.0, 90.0)));
-	put_u32_le(buffer, 8, static_cast<uint32_t>(geo_deg_to_e7(lon_deg, -180.0, 180.0)));
-	put_u16_le(buffer, 12, static_cast<uint16_t>(scaled_s16(alt_m, 5.f, -6553.6f, 6553.4f)));
-	buffer[14] = 0;
-	buffer[15] = checksum8(buffer, 15);
-
-	if (!write_command_buffer(buffer, sizeof(buffer))) {
-		++_write_error_count;
-		PX4_WARN("DYT geo track tx failed result=%d errno=%d", _last_write_result, _last_write_errno);
-
-	} else {
-		++_command_tx_count;
-		_last_command_control = 0x3A;
-		_last_command_time = hrt_absolute_time();
-	}
+	return static_cast<uint16_t>((static_cast<uint16_t>(buffer[index]) << 8) | buffer[index + 1]);
 }
 
-void DytGimbal::send_ownship_state_frame(const dyt_command_s &cmd)
+int16_t DytGimbal::read_be_s16(const uint8_t *buffer, size_t index)
 {
-	if (_uart_fd < 0) {
-		return;
-	}
-
-	float roll_deg = 0.f;
-	float pitch_deg = 0.f;
-	float yaw_deg = 0.f;
-	corrected_geo_attitude_deg(cmd, roll_deg, pitch_deg, yaw_deg);
-
-	uint8_t buffer[OWNSHIP_STATE_LEN]{};
-	buffer[0] = 0xEB;
-	buffer[1] = 0x91;
-	put_u16_le(buffer, 2, static_cast<uint16_t>(scaled_s16(roll_deg, 100.f, -180.f, 180.f)));
-	put_u16_le(buffer, 4, static_cast<uint16_t>(scaled_s16(pitch_deg, 100.f, -180.f, 180.f)));
-	put_u16_le(buffer, 6, static_cast<uint16_t>(scaled_s16(yaw_deg, 100.f, -180.f, 180.f)));
-	put_u32_le(buffer, 8, static_cast<uint32_t>(geo_deg_to_e7(cmd.lat, -90.0, 90.0)));
-	put_u32_le(buffer, 12, static_cast<uint32_t>(geo_deg_to_e7(cmd.lon, -180.0, 180.0)));
-	put_u16_le(buffer, 16, static_cast<uint16_t>(scaled_s16(cmd.alt, 5.f, -6553.6f, 6553.4f)));
-	put_u16_le(buffer, 18, static_cast<uint16_t>(scaled_s16(cmd.rel_alt, 5.f, -6553.6f, 6553.4f)));
-
-	time_t unix_time = time(nullptr);
-	struct tm utc_time {};
-
-	if (unix_time > 946684800 && gmtime_r(&unix_time, &utc_time) != nullptr) {
-		buffer[20] = static_cast<uint8_t>(math::constrain(utc_time.tm_year - 100, 0, 255));
-		buffer[21] = static_cast<uint8_t>(utc_time.tm_mon + 1);
-		buffer[22] = static_cast<uint8_t>(utc_time.tm_mday);
-		buffer[23] = static_cast<uint8_t>(utc_time.tm_hour);
-		buffer[24] = static_cast<uint8_t>(utc_time.tm_min);
-		buffer[25] = static_cast<uint8_t>(utc_time.tm_sec);
-	}
-
-	buffer[26] = static_cast<uint8_t>((hrt_absolute_time() / 10000ULL) % 100ULL);
-	put_u16_le(buffer, 27, scaled_u16(cmd.airspeed_m_s, 2.f, 32767.f));
-	put_u16_le(buffer, 29, scaled_u16(cmd.groundspeed_m_s, 2.f, 32767.f));
-	buffer[31] = checksum8(buffer, 31);
-
-	if (!write_command_buffer(buffer, sizeof(buffer))) {
-		++_write_error_count;
-		PX4_WARN("DYT ownship state tx failed result=%d errno=%d", _last_write_result, _last_write_errno);
-
-	} else {
-		++_command_tx_count;
-		_last_command_control = 0x91;
-		_last_command_time = hrt_absolute_time();
-	}
+	return static_cast<int16_t>(read_be_u16(buffer, index));
 }
 
-void DytGimbal::corrected_geo_attitude_deg(const dyt_command_s &cmd, float &roll_deg, float &pitch_deg,
-		float &yaw_deg) const
+float DytGimbal::read_be_float(const uint8_t *buffer, size_t index)
 {
-	float roll_rad = cmd.roll_rad;
-	float pitch_rad = cmd.pitch_rad;
-	float yaw_rad = cmd.yaw_rad;
+	const uint32_t raw = (static_cast<uint32_t>(buffer[index]) << 24) |
+			     (static_cast<uint32_t>(buffer[index + 1]) << 16) |
+			     (static_cast<uint32_t>(buffer[index + 2]) << 8) |
+			     static_cast<uint32_t>(buffer[index + 3]);
+	float value = NAN;
+	memcpy(&value, &raw, sizeof(value));
+	return value;
+}
 
-	if (_param_dyt_geo_mount_enable.get() > 0) {
-		const Dcmf body_to_ned(Eulerf(roll_rad, pitch_rad, yaw_rad));
-		const Dcmf mount_to_body(Eulerf(math::radians(finite_param_deg(_param_dyt_geo_mount_roll_deg.get())),
-						math::radians(finite_param_deg(_param_dyt_geo_mount_pitch_deg.get())),
-						math::radians(finite_param_deg(_param_dyt_geo_mount_yaw_deg.get()))));
-		const Eulerf mount_euler(body_to_ned * mount_to_body);
-		roll_rad = mount_euler.phi();
-		pitch_rad = mount_euler.theta();
-		yaw_rad = mount_euler.psi();
+void DytGimbal::put_be_u16(uint8_t *buffer, size_t index, uint16_t value)
+{
+	buffer[index] = static_cast<uint8_t>((value >> 8) & 0xFF);
+	buffer[index + 1] = static_cast<uint8_t>(value & 0xFF);
+}
+
+void DytGimbal::put_be_u32(uint8_t *buffer, size_t index, uint32_t value)
+{
+	buffer[index] = static_cast<uint8_t>((value >> 24) & 0xFF);
+	buffer[index + 1] = static_cast<uint8_t>((value >> 16) & 0xFF);
+	buffer[index + 2] = static_cast<uint8_t>((value >> 8) & 0xFF);
+	buffer[index + 3] = static_cast<uint8_t>(value & 0xFF);
+}
+
+void DytGimbal::put_be_float(uint8_t *buffer, size_t index, float value)
+{
+	uint32_t raw = 0;
+	memcpy(&raw, &value, sizeof(raw));
+	put_be_u32(buffer, index, raw);
+}
+
+int16_t DytGimbal::angle_deg_to_cdeg(float angle_deg)
+{
+	if (!PX4_ISFINITE(angle_deg)) {
+		return 0;
 	}
 
-	roll_deg = corrected_geo_axis_deg(roll_rad, _param_dyt_geo_roll_sign.get(),
-					  _param_dyt_geo_roll_offset_deg.get());
-	pitch_deg = corrected_geo_axis_deg(pitch_rad, _param_dyt_geo_pitch_sign.get(),
-					   _param_dyt_geo_pitch_offset_deg.get());
-	yaw_deg = corrected_geo_axis_deg(yaw_rad, _param_dyt_geo_yaw_sign.get(),
-					 _param_dyt_geo_yaw_offset_deg.get());
+	return static_cast<int16_t>(roundf(math::constrain(angle_deg, -180.f, 180.f) * 100.f));
 }
 
-float DytGimbal::corrected_geo_axis_deg(float angle_rad, int sign_param, float offset_deg) const
+bool DytGimbal::parse_float_arg(const char *arg, float &value)
 {
-	const float sign = sign_param < 0 ? -1.f : 1.f;
-	const float finite_offset = PX4_ISFINITE(offset_deg) ? offset_deg : 0.f;
+	if (arg == nullptr || arg[0] == '\0') {
+		return false;
+	}
 
-	return math::constrain(math::degrees(angle_rad) * sign + finite_offset, -180.f, 180.f);
+	char *end = nullptr;
+	errno = 0;
+	const float parsed = strtof(arg, &end);
+
+	if (end == arg || *end != '\0' || errno == ERANGE || !PX4_ISFINITE(parsed)) {
+		return false;
+	}
+
+	value = parsed;
+	return true;
 }
 
-float DytGimbal::finite_param_deg(float value) const
+bool DytGimbal::parse_int32_arg(const char *arg, int32_t &value, int32_t min_value, int32_t max_value)
 {
-	return PX4_ISFINITE(value) ? value : 0.f;
+	if (arg == nullptr || arg[0] == '\0') {
+		return false;
+	}
+
+	char *end = nullptr;
+	errno = 0;
+	const long parsed = strtol(arg, &end, 10);
+
+	if (end == arg || *end != '\0' || errno == ERANGE || parsed < min_value || parsed > max_value) {
+		return false;
+	}
+
+	value = static_cast<int32_t>(parsed);
+	return true;
+}
+
+bool DytGimbal::parse_uint32_arg(const char *arg, uint32_t &value)
+{
+	if (arg == nullptr || arg[0] == '\0' || arg[0] == '-') {
+		return false;
+	}
+
+	char *end = nullptr;
+	errno = 0;
+	const unsigned long long parsed = strtoull(arg, &end, 10);
+
+	if (end == arg || *end != '\0' || errno == ERANGE || parsed > UINT32_MAX) {
+		return false;
+	}
+
+	value = static_cast<uint32_t>(parsed);
+	return true;
 }
 
 int DytGimbal::task_spawn(int argc, char *argv[])
 {
 	const char *device = "/dev/ttyS3";
-
-	int ch;
+	int ch = 0;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'd':
+		if (ch == 'd') {
 			device = myoptarg;
-			break;
 
-		default:
+		} else {
 			return print_usage("unknown option");
 		}
 	}
@@ -1435,8 +1499,13 @@ int DytGimbal::custom_command(int argc, char *argv[])
 		return PX4_OK;
 	}
 
-	if (!strcmp(argv[0], "nofollow")) {
-		get_instance()->publish_shell_command(dyt_command_s::CMD_NOFOLLOW);
+	if (!strcmp(argv[0], "center")) {
+		get_instance()->publish_shell_command(dyt_command_s::CMD_CENTER);
+		return PX4_OK;
+	}
+
+	if (!strcmp(argv[0], "nofollow") || !strcmp(argv[0], "lockview")) {
+		get_instance()->publish_shell_command(dyt_command_s::CMD_LOCK_VIEW);
 		return PX4_OK;
 	}
 
@@ -1445,28 +1514,136 @@ int DytGimbal::custom_command(int argc, char *argv[])
 		return PX4_OK;
 	}
 
-	if (!strcmp(argv[0], "elock")) {
-		get_instance()->publish_shell_command(dyt_command_s::CMD_ELECT_LOCK);
-		return PX4_OK;
-	}
-
-	if (!strcmp(argv[0], "eunlock")) {
-		get_instance()->publish_shell_command(dyt_command_s::CMD_ELECT_UNLOCK);
-		return PX4_OK;
-	}
-
-	if (!strcmp(argv[0], "lockview")) {
-		get_instance()->publish_shell_command(dyt_command_s::CMD_LOCK_VIEW);
-		return PX4_OK;
-	}
-
-	if (!strcmp(argv[0], "center")) {
-		get_instance()->publish_shell_command(dyt_command_s::CMD_CENTER);
-		return PX4_OK;
-	}
-
 	if (!strcmp(argv[0], "centergimbal")) {
-		get_instance()->publish_shell_command(dyt_command_s::CMD_CENTER_GIMBAL);
+		get_instance()->publish_shell_angle_command(0.f, 0.f);
+		return PX4_OK;
+	}
+
+	if (!strcmp(argv[0], "osd")) {
+		if (argc < 2 || (strcmp(argv[1], "on") && strcmp(argv[1], "off"))) {
+			return print_usage("usage: dyt_gimbal osd <on|off>");
+		}
+
+		const uint8_t command = !strcmp(argv[1], "on") ? dyt_command_s::CMD_OSD_ENABLE :
+					dyt_command_s::CMD_OSD_DISABLE;
+		get_instance()->publish_shell_command(command);
+		return PX4_OK;
+	}
+
+	if (!strcmp(argv[0], "angle")) {
+		if (argc < 3) {
+			return print_usage("usage: dyt_gimbal angle <yaw_deg> <pitch_deg>");
+		}
+
+		float yaw_deg = NAN;
+		float pitch_deg = NAN;
+
+		if (!parse_float_arg(argv[1], yaw_deg) || !parse_float_arg(argv[2], pitch_deg)) {
+			return print_usage("invalid angle argument");
+		}
+
+		get_instance()->publish_shell_angle_command(yaw_deg, pitch_deg);
+		return PX4_OK;
+	}
+
+	if (!strcmp(argv[0], "trackxy")) {
+		if (argc < 3) {
+			return print_usage("usage: dyt_gimbal trackxy <x_px> <y_px>");
+		}
+
+		int32_t x_px = 0;
+		int32_t y_px = 0;
+
+		if (!parse_int32_arg(argv[1], x_px, INT16_MIN, INT16_MAX) ||
+		    !parse_int32_arg(argv[2], y_px, INT16_MIN, INT16_MAX)) {
+			return print_usage("invalid tracking pixel coordinates");
+		}
+
+		get_instance()->publish_shell_track_point_command(static_cast<int16_t>(x_px), static_cast<int16_t>(y_px));
+		return PX4_OK;
+	}
+
+	if (!strcmp(argv[0], "trackid")) {
+		if (argc < 2) {
+			return print_usage("usage: dyt_gimbal trackid <target_id>");
+		}
+
+		uint32_t target_id = 0;
+
+		if (!parse_uint32_arg(argv[1], target_id)) {
+			return print_usage("invalid target id");
+		}
+
+		get_instance()->publish_shell_value_command(dyt_command_s::CMD_TRACK_ID, target_id);
+		return PX4_OK;
+	}
+
+	if (!strcmp(argv[0], "ai") || !strcmp(argv[0], "assist")) {
+		if (argc < 2 || (strcmp(argv[1], "on") && strcmp(argv[1], "off"))) {
+			return print_usage(!strcmp(argv[0], "ai") ? "usage: dyt_gimbal ai <on|off>" :
+				   "usage: dyt_gimbal assist <on|off>");
+		}
+
+		const bool enable = !strcmp(argv[1], "on");
+		uint8_t command = dyt_command_s::CMD_NONE;
+
+		if (!strcmp(argv[0], "ai")) {
+			command = enable ? dyt_command_s::CMD_AI_ENABLE : dyt_command_s::CMD_AI_DISABLE;
+
+		} else {
+			command = enable ? dyt_command_s::CMD_ASSIST_ENABLE : dyt_command_s::CMD_ASSIST_DISABLE;
+		}
+
+		get_instance()->publish_shell_command(command);
+		return PX4_OK;
+	}
+
+	if (!strcmp(argv[0], "target")) {
+		if (argc < 2) {
+			return print_usage("usage: dyt_gimbal target <all|person|vehicle>");
+		}
+
+		uint32_t target_type = 0;
+
+		if (!strcmp(argv[1], "all")) {
+			target_type = 1;
+
+		} else if (!strcmp(argv[1], "person")) {
+			target_type = 2;
+
+		} else if (!strcmp(argv[1], "vehicle")) {
+			target_type = 3;
+
+		} else {
+			return print_usage("invalid target type");
+		}
+
+		get_instance()->publish_shell_value_command(dyt_command_s::CMD_TARGET_TYPE, target_type);
+		return PX4_OK;
+	}
+
+	if (!strcmp(argv[0], "imagemode")) {
+		if (argc < 2) {
+			return print_usage("usage: dyt_gimbal imagemode <vis|ir|pip1|pip2|up1|up2|left1|left2|bw|color>");
+		}
+
+		static constexpr const char *image_mode_names[] = {
+			"vis", "ir", "pip1", "pip2", "up1", "up2", "left1", "left2", "bw", "color"
+		};
+		uint32_t image_mode = UINT32_MAX;
+
+		for (uint32_t i = 0; i < sizeof(image_mode_names) / sizeof(image_mode_names[0]); ++i) {
+			if (!strcmp(argv[1], image_mode_names[i])) {
+				image_mode = i;
+				break;
+			}
+		}
+
+		if (image_mode == UINT32_MAX) {
+			return print_usage("invalid image mode");
+		}
+
+		get_instance()->publish_shell_value_command(dyt_command_s::CMD_IMAGE_MODE, image_mode);
 		return PX4_OK;
 	}
 
@@ -1482,23 +1659,35 @@ int DytGimbal::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-DYT UART driver for periodic telemetry parsing and one-shot tracking commands.
-
+Tweety V2.0.9.6 RS422 protocol driver for gimbal status and control.
 )DESCR_STR");
-
 	PRINT_MODULE_USAGE_NAME("dyt_gimbal", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_ARG("-d <device>", "UART device path, default /dev/ttyS3", true);
+	PRINT_MODULE_USAGE_ARG("-d <device>", "UART device connected through an RS422 transceiver", true);
 	PRINT_MODULE_USAGE_COMMAND("status");
 	PRINT_MODULE_USAGE_COMMAND("autolock");
 	PRINT_MODULE_USAGE_COMMAND("stoptrk");
-	PRINT_MODULE_USAGE_COMMAND("nofollow");
-	PRINT_MODULE_USAGE_COMMAND("yawfollow");
-	PRINT_MODULE_USAGE_COMMAND("elock");
-	PRINT_MODULE_USAGE_COMMAND("eunlock");
-	PRINT_MODULE_USAGE_COMMAND("lockview");
 	PRINT_MODULE_USAGE_COMMAND("center");
+	PRINT_MODULE_USAGE_COMMAND("nofollow");
+	PRINT_MODULE_USAGE_COMMAND("lockview");
+	PRINT_MODULE_USAGE_COMMAND("yawfollow");
 	PRINT_MODULE_USAGE_COMMAND("centergimbal");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("osd", "Enable or disable tracker character display");
+	PRINT_MODULE_USAGE_ARG("<on|off>", "OSD character display state", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("angle", "Set follow-mode yaw and pitch angles in degrees");
+	PRINT_MODULE_USAGE_ARG("<yaw_deg> <pitch_deg>", "Yaw and pitch angles", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("trackxy", "Track a target at image pixel coordinates");
+	PRINT_MODULE_USAGE_ARG("<x_px> <y_px>", "Signed target coordinates; 0 0 selects image center", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("trackid", "Convert an AI detection target ID to tracking");
+	PRINT_MODULE_USAGE_ARG("<target_id>", "Unsigned 32-bit target ID", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("ai", "Enable or disable AI detection");
+	PRINT_MODULE_USAGE_ARG("<on|off>", "AI detection state", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("assist", "Enable or disable intelligent assisted tracking");
+	PRINT_MODULE_USAGE_ARG("<on|off>", "Assisted tracking state", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("target", "Select the AI detection target type");
+	PRINT_MODULE_USAGE_ARG("<all|person|vehicle>", "AI target category", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("imagemode", "Select tracker display mode");
+	PRINT_MODULE_USAGE_ARG("<vis|ir|pip1|pip2|up1|up2|left1|left2|bw|color>", "Display mode", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
