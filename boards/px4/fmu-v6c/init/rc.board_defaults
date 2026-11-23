@@ -22,7 +22,6 @@ safety_button start
 # ===== 导引头制导 DYTG（全部）（73 项）=====
 param set-default DYTG_ACT_AUX -1
 param set-default DYTG_ACT_BTN 2
-param set-default DYTG_AUTO_N 3
 param set-default DYTG_COOP_EN 1
 param set-default DYTG_CTRMS 400
 
@@ -41,7 +40,6 @@ param set-default DYTG_KA_FOL 0.5
 param set-default DYTG_KA_INT 2
 param set-default DYTG_KV_FOL 0.800000012
 param set-default DYTG_KV_INT 1.20000005
-param set-default DYTG_LOCK_N 2
 param set-default DYTG_LOSTMS 240000
 param set-default DYTG_LPF_A 0.699999988
 param set-default DYTG_LXSIGN 1
@@ -55,6 +53,7 @@ param set-default DYTG_MAXYAWR 120
 param set-default DYTG_MNT_EN 1
 param set-default DYTG_MNT_P 90
 param set-default DYTG_MNT_PRED 0
+param set-default DYTG_MNT_MODE 0
 param set-default DYTG_MNT_R 0
 param set-default DYTG_MNT_Y 0
 param set-default DYTG_N_FOL 0.600000024
@@ -62,7 +61,6 @@ param set-default DYTG_N_INT 3.5
 param set-default DYTG_POFF 0
 param set-default DYTG_PREDMAX 0.0299999993
 param set-default DYTG_PSIGN 1
-param set-default DYTG_RELOCKN 20
 param set-default DYTG_ROFF 0
 param set-default DYTG_RSIGN 1
 param set-default DYTG_RTRYMS 500
@@ -113,9 +111,10 @@ param set-default DYT_GEO_YOFF 0
 param set-default DYT_GEO_YSIGN 1
 param set-default DYT_HOME_DLY 3000
 param set-default DYT_HOME_DUR 10000
-param set-default DYT_HOME_EN 1
+param set-default DYT_HOME_EN 0
 param set-default DYT_HOME_INT 500
-param set-default DYT_HOME_PIT 90
+param set-default DYT_HOME_PIT -90
+param set-default DYT_LOS_SC 0.05
 param set-default DYT_HOME_YAW 0
 param set-default DYT_LOG_MS 0
 param set-default DYT_RAWLOG 0
@@ -277,3 +276,13 @@ param set-default COM_RC_LOSS_T 1
 param set-default IMU_GYRO_RATEMAX 800
 param set-default PWM_MAIN_TIM0 -4
 param set-default RTL_DESCEND_ALT 10
+
+# DYT lock workflow: match the reference automatic acquisition timing.
+param set-default DYTG_AUTO_EN 1
+param set-default DYTG_LOCK_MS 2000
+
+# DYT frame-angle limits from the reference project.
+param set-default DYTG_YAW_MIN -40
+param set-default DYTG_YAW_MAX 40
+param set-default DYTG_PIT_MIN -90
+param set-default DYTG_PIT_MAX 40

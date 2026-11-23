@@ -228,7 +228,7 @@ private:
 		(ParamInt<px4::params::DYT_IR_W>) _param_dyt_infrared_width_px,
 		(ParamInt<px4::params::DYT_IR_H>) _param_dyt_infrared_height_px,
 		(ParamInt<px4::params::DYT_TRK_VAL>) _param_dyt_tracking_value,
-		(ParamInt<px4::params::DYT_LOCK_MS>) _param_dyt_lock_hold_ms
+		(ParamInt<px4::params::DYTG_LOCK_MS>) _param_dyt_lock_hold_ms
 	)
 };
 

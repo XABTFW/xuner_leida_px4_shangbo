@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::gripper) == 130, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::gripper) == 131, "ORB_ID index mismatch");
 ORB_DEFINE(gripper, struct gripper_s, 9, 3780085177u, static_cast<orb_id_size_t>(ORB_ID::gripper), 1);
 
 

@@ -45,15 +45,15 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::orb_test_medium) == 178, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::orb_test_medium) == 179, "ORB_ID index mismatch");
 ORB_DEFINE(orb_test_medium, struct orb_test_medium_s, 76, 482053066u, static_cast<orb_id_size_t>(ORB_ID::orb_test_medium), 16);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_multi) == 179, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_multi) == 180, "ORB_ID index mismatch");
 ORB_DEFINE(orb_test_medium_multi, struct orb_test_medium_s, 76, 482053066u, static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_multi), 16);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_wrap_around) == 182, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_wrap_around) == 183, "ORB_ID index mismatch");
 ORB_DEFINE(orb_test_medium_wrap_around, struct orb_test_medium_s, 76, 482053066u, static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_wrap_around), 16);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_queue) == 180, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_queue) == 181, "ORB_ID index mismatch");
 ORB_DEFINE(orb_test_medium_queue, struct orb_test_medium_s, 76, 482053066u, static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_queue), 16);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_queue_poll) == 181, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_queue_poll) == 182, "ORB_ID index mismatch");
 ORB_DEFINE(orb_test_medium_queue_poll, struct orb_test_medium_s, 76, 482053066u, static_cast<orb_id_size_t>(ORB_ID::orb_test_medium_queue_poll), 16);
 
 

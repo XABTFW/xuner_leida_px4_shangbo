@@ -3,8 +3,8 @@
 {
 		"fields": "\u0089 timestamp;\u0084 val;\u0086[4] _padding0;",
 		"fields_total_length": 52,
-		"orb_ids": [176, 175],
-		"main_orb_id": 176,
+		"orb_ids": [177, 176],
+		"main_orb_id": 177,
 		"dependencies": [],
 		"name": "px4/OrbTest"
 }

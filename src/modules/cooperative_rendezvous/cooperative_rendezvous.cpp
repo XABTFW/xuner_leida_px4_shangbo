@@ -821,6 +821,9 @@ void CooperativeRendezvous::reset_velocity_slew()
 void CooperativeRendezvous::Run()
 {
 	if (should_exit()) {
+		vehicle_status_s status{};
+		_vehicle_status_sub.copy(&status);
+		publish_status(status, false, false);
 		ScheduleClear();
 		exit_and_cleanup();
 		return;
@@ -872,6 +875,13 @@ void CooperativeRendezvous::Run()
 	}
 
 	update_target_from_link();
+
+	const bool controlling_vehicle = local_position_valid(local_pos) && rendezvous_switch_enabled()
+					 && !dyt_guidance_active()
+					 && ((active_role() == Role::Rendezvous && (!_offboard_user_released || offboard_active))
+					     || (active_role() == Role::Broadcast
+						 && status.arming_state == vehicle_status_s::ARMING_STATE_ARMED));
+	publish_status(status, local_position_valid(local_pos), controlling_vehicle);
 
 	if (!local_position_valid(local_pos)) {
 		return;
@@ -1134,6 +1144,26 @@ an incoming radar target position when -G is enabled.
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
+}
+
+void CooperativeRendezvous::publish_status(const vehicle_status_s &status, bool local_position_is_valid,
+		bool controlling_vehicle)
+{
+	cooperative_rendezvous_status_s cooperative_status{};
+	cooperative_status.timestamp = hrt_absolute_time();
+	cooperative_status.command_sequence = 0;
+	cooperative_status.role = active_role() == Role::Rendezvous ?
+				     cooperative_rendezvous_status_s::ROLE_RENDEZVOUS :
+				     cooperative_rendezvous_status_s::ROLE_BROADCAST;
+	cooperative_status.enabled = rendezvous_switch_enabled();
+	cooperative_status.controlling_vehicle = controlling_vehicle;
+	cooperative_status.active = cooperative_status.enabled && local_position_is_valid &&
+				    status.arming_state == vehicle_status_s::ARMING_STATE_ARMED &&
+				    controlling_vehicle;
+	cooperative_status.target_valid = _last_target_time != 0 &&
+					  hrt_elapsed_time(&_last_target_time) <=
+					  static_cast<hrt_abstime>(_options.target_timeout_s * 1_s);
+	_status_pub.publish(cooperative_status);
 }
 
 extern "C" __EXPORT int cooperative_rendezvous_main(int argc, char *argv[])

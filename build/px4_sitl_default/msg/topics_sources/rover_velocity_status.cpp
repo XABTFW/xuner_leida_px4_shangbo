@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::rover_velocity_status) == 221, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::rover_velocity_status) == 222, "ORB_ID index mismatch");
 ORB_DEFINE(rover_velocity_status, struct rover_velocity_status_s, 32, 3076800308u, static_cast<orb_id_size_t>(ORB_ID::rover_velocity_status), 1);
 
 

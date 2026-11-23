@@ -580,7 +580,6 @@ enum class params : uint16_t {
 	DYTG_ACT_AUX,
 	DYTG_ACT_BTN,
 	DYTG_AUTO_EN,
-	DYTG_AUTO_N,
 	DYTG_COOP_EN,
 	DYTG_CTRMS,
 	DYTG_DLY_MS,
@@ -593,7 +592,7 @@ enum class params : uint16_t {
 	DYTG_KA_INT,
 	DYTG_KV_FOL,
 	DYTG_KV_INT,
-	DYTG_LOCK_N,
+	DYTG_LOCK_MS,
 	DYTG_LOSTMS,
 	DYTG_LPF_A,
 	DYTG_LXSIGN,
@@ -605,16 +604,18 @@ enum class params : uint16_t {
 	DYTG_MAXV,
 	DYTG_MAXYAWR,
 	DYTG_MNT_EN,
+	DYTG_MNT_MODE,
 	DYTG_MNT_P,
 	DYTG_MNT_PRED,
 	DYTG_MNT_R,
 	DYTG_MNT_Y,
 	DYTG_N_FOL,
 	DYTG_N_INT,
+	DYTG_PIT_MAX,
+	DYTG_PIT_MIN,
 	DYTG_POFF,
 	DYTG_PREDMAX,
 	DYTG_PSIGN,
-	DYTG_RELOCKN,
 	DYTG_ROFF,
 	DYTG_RSIGN,
 	DYTG_RTRYMS,
@@ -644,6 +645,8 @@ enum class params : uint16_t {
 	DYTG_XYSLEW,
 	DYTG_YAWLIM,
 	DYTG_YAWLOS,
+	DYTG_YAW_MAX,
+	DYTG_YAW_MIN,
 	DYTG_YOFF,
 	DYTG_YSIGN,
 	DYTG_ZSCALE,
@@ -667,10 +670,16 @@ enum class params : uint16_t {
 	DYT_HOME_INT,
 	DYT_HOME_PIT,
 	DYT_HOME_YAW,
+	DYT_IR_H,
+	DYT_IR_W,
 	DYT_LOG_MS,
+	DYT_LOS_SC,
 	DYT_RAWLOG,
 	DYT_RTRY_MS,
 	DYT_TO_MS,
+	DYT_TRK_VAL,
+	DYT_VIS_H,
+	DYT_VIS_W,
 	EKF2_ABIAS_INIT,
 	EKF2_ABL_ACCLIM,
 	EKF2_ABL_GYRLIM,
@@ -4907,11 +4916,6 @@ static constexpr param_info_s parameters[] = {
 	},
 
 	{
-		.name = "DYTG_AUTO_N",
-		.val = { .i = 5},
-	},
-
-	{
 		.name = "DYTG_COOP_EN",
 		.val = { .i = 0},
 	},
@@ -4972,8 +4976,8 @@ static constexpr param_info_s parameters[] = {
 	},
 
 	{
-		.name = "DYTG_LOCK_N",
-		.val = { .i = 4},
+		.name = "DYTG_LOCK_MS",
+		.val = { .i = 2000},
 	},
 
 	{
@@ -5032,6 +5036,11 @@ static constexpr param_info_s parameters[] = {
 	},
 
 	{
+		.name = "DYTG_MNT_MODE",
+		.val = { .i = 1},
+	},
+
+	{
 		.name = "DYTG_MNT_P",
 		.val = { .f = 0. },
 	},
@@ -5062,6 +5071,16 @@ static constexpr param_info_s parameters[] = {
 	},
 
 	{
+		.name = "DYTG_PIT_MAX",
+		.val = { .f = 40. },
+	},
+
+	{
+		.name = "DYTG_PIT_MIN",
+		.val = { .f = -90. },
+	},
+
+	{
 		.name = "DYTG_POFF",
 		.val = { .f = 0. },
 	},
@@ -5074,11 +5093,6 @@ static constexpr param_info_s parameters[] = {
 	{
 		.name = "DYTG_PSIGN",
 		.val = { .i = 1},
-	},
-
-	{
-		.name = "DYTG_RELOCKN",
-		.val = { .i = 3},
 	},
 
 	{
@@ -5227,6 +5241,16 @@ static constexpr param_info_s parameters[] = {
 	},
 
 	{
+		.name = "DYTG_YAW_MAX",
+		.val = { .f = 40. },
+	},
+
+	{
+		.name = "DYTG_YAW_MIN",
+		.val = { .f = -40. },
+	},
+
+	{
 		.name = "DYTG_YOFF",
 		.val = { .f = 0. },
 	},
@@ -5342,8 +5366,23 @@ static constexpr param_info_s parameters[] = {
 	},
 
 	{
+		.name = "DYT_IR_H",
+		.val = { .i = 720},
+	},
+
+	{
+		.name = "DYT_IR_W",
+		.val = { .i = 1280},
+	},
+
+	{
 		.name = "DYT_LOG_MS",
 		.val = { .i = 0},
+	},
+
+	{
+		.name = "DYT_LOS_SC",
+		.val = { .f = 0. },
 	},
 
 	{
@@ -5359,6 +5398,21 @@ static constexpr param_info_s parameters[] = {
 	{
 		.name = "DYT_TO_MS",
 		.val = { .i = 300},
+	},
+
+	{
+		.name = "DYT_TRK_VAL",
+		.val = { .i = 1},
+	},
+
+	{
+		.name = "DYT_VIS_H",
+		.val = { .i = 1080},
+	},
+
+	{
+		.name = "DYT_VIS_W",
+		.val = { .i = 1920},
 	},
 
 	{
@@ -12909,7 +12963,6 @@ static constexpr param_type_t parameters_type[] = {
 	PARAM_TYPE_INT32,
 	PARAM_TYPE_INT32,
 	PARAM_TYPE_INT32,
-	PARAM_TYPE_INT32,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_INT32,
@@ -12932,19 +12985,9 @@ static constexpr param_type_t parameters_type[] = {
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_INT32,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_INT32,
 	PARAM_TYPE_INT32,
 	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_INT32,
-	PARAM_TYPE_INT32,
+	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
@@ -12955,17 +12998,10 @@ static constexpr param_type_t parameters_type[] = {
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_INT32,
 	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_INT32,
 	PARAM_TYPE_INT32,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_INT32,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_FLOAT,
-	PARAM_TYPE_INT32,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
@@ -12974,6 +13010,27 @@ static constexpr param_type_t parameters_type[] = {
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_INT32,
 	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_INT32,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_INT32,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_INT32,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_INT32,
+	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_INT32,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
@@ -12994,6 +13051,12 @@ static constexpr param_type_t parameters_type[] = {
 	PARAM_TYPE_INT32,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_INT32,
+	PARAM_TYPE_INT32,
+	PARAM_TYPE_INT32,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_INT32,
+	PARAM_TYPE_INT32,
 	PARAM_TYPE_INT32,
 	PARAM_TYPE_INT32,
 	PARAM_TYPE_INT32,

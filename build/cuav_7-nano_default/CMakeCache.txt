@@ -251,6 +251,9 @@ CMAKE_TAPI:FILEPATH=CMAKE_TAPI-NOTFOUND
 //Configure test targets
 CMAKE_TESTING:BOOL=OFF
 
+//The CMake toolchain file
+CMAKE_TOOLCHAIN_FILE:FILEPATH=/home/btfw/tpy/px4_net_communication/PX4_Network_communication/platforms/nuttx/cmake/Toolchain-arm-none-eabi.cmake
+
 //If this value is on, makefiles will be generated without the
 // .SILENT directive, and all commands will be echoed to the console
 // during the make.  This is useful for debugging only. With Visual
@@ -638,9 +641,6 @@ flashparams_LIB_DEPENDS:STATIC=general;nuttx_arch;
 //Dependencies for the target
 follow_target_estimator_LIB_DEPENDS:STATIC=general;mathlib;general;px4_work_queue;
 
-//Dependencies for the target
-fw_autotune_attitude_control_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;hysteresis;general;mathlib;general;px4_work_queue;general;SystemIdentification;
-
 //Value Computed by CMake
 libuavcan_BINARY_DIR:STATIC=/home/btfw/tpy/px4_net_communication/PX4_Network_communication/build/cuav_7-nano_default/src/drivers/uavcan/libdronecan/libuavcan
 
@@ -664,9 +664,6 @@ mc_autotune_attitude_control_LIB_DEPENDS:STATIC=general;px4_platform;general;sys
 
 //Dependencies for the target
 mission_feasibility_checker_LIB_DEPENDS:STATIC=general;modules__navigator;general;modules__dataman;
-
-//Dependencies for the target
-modules__airspeed_selector_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;wind_estimator;
 
 //Dependencies for the target
 modules__battery_status_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;battery;general;conversion;general;drivers__device;general;mathlib;
@@ -705,25 +702,10 @@ modules__events_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;genera
 modules__flight_mode_manager_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;px4_work_queue;general;WeatherVane;general;FlightTaskAuto;general;FlightTaskDescend;general;FlightTaskFailsafe;general;FlightTaskManualAcceleration;general;FlightTaskManualAccelerationSlow;general;FlightTaskManualAltitude;general;FlightTaskManualAltitudeSmoothVel;general;FlightTaskManualPosition;general;FlightTaskTransition;general;FlightTaskAutoFollowTarget;general;FlightTaskOrbit;
 
 //Dependencies for the target
-modules__fw_att_control_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;px4_work_queue;
-
-//Dependencies for the target
-modules__fw_lateral_longitudinal_control_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;npfg;general;tecs;
-
-//Dependencies for the target
-modules__fw_mode_manager_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;launchdetection;general;npfg;general;runway_takeoff;general;SlewRate;general;tecs;general;motion_planning;general;performance_model;
-
-//Dependencies for the target
-modules__fw_rate_control_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;px4_work_queue;general;RateControl;general;SlewRate;
-
-//Dependencies for the target
 modules__gyro_calibration_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;px4_work_queue;general;sensor_calibration;
 
 //Dependencies for the target
 modules__land_detector_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;hysteresis;
-
-//Dependencies for the target
-modules__landing_target_estimator_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;
 
 //Dependencies for the target
 modules__load_mon_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;px4_work_queue;
@@ -777,12 +759,6 @@ modules__sensors_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;gener
 modules__temperature_compensation_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;mathlib;
 
 //Dependencies for the target
-modules__uxrce_dds_client_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;libmicroxrceddsclient;general;libmicrocdr;general;timesync;
-
-//Dependencies for the target
-modules__vtol_att_control_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;
-
-//Dependencies for the target
 npfg_LIB_DEPENDS:STATIC=general;geo;
 
 //Dependencies for the target
@@ -814,12 +790,6 @@ rover_control_LIB_DEPENDS:STATIC=general;PID;general;geo;
 
 //Dependencies for the target
 sensor_calibration_LIB_DEPENDS:STATIC=general;conversion;
-
-//Dependencies for the target
-systemcmds__actuator_test_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;
-
-//Dependencies for the target
-systemcmds__bsondump_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;general;tinybson;
 
 //Dependencies for the target
 systemcmds__dmesg_LIB_DEPENDS:STATIC=general;px4_platform;general;systemlib;general;perf;general;px4_layer;general;uORB;
@@ -1081,8 +1051,6 @@ CMAKE_STRIP-ADVANCED:INTERNAL=1
 CMAKE_SYSTEM_PROCESSOR:INTERNAL=cortex-m7
 //ADVANCED property for variable: CMAKE_TAPI
 CMAKE_TAPI-ADVANCED:INTERNAL=1
-//toolchain file
-CMAKE_TOOLCHAIN_FILE:INTERNAL=Toolchain-arm-none-eabi
 //uname command
 CMAKE_UNAME:INTERNAL=/usr/bin/uname
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
@@ -1735,8 +1703,6 @@ CONFIG_MM_DEFAULT_MANAGER:INTERNAL=y
 CONFIG_MM_IOB:INTERNAL=y
 //NUTTX DEFCONFIG: CONFIG_MM_REGIONS
 CONFIG_MM_REGIONS:INTERNAL=4
-//BOARD DEFCONFIG: CONFIG_MODULES_AIRSPEED_SELECTOR
-CONFIG_MODULES_AIRSPEED_SELECTOR:INTERNAL=
 //BOARD DEFCONFIG: CONFIG_MODULES_BATTERY_STATUS
 CONFIG_MODULES_BATTERY_STATUS:INTERNAL=y
 //BOARD DEFCONFIG: CONFIG_MODULES_CAMERA_FEEDBACK
@@ -1759,22 +1725,10 @@ CONFIG_MODULES_ESC_BATTERY:INTERNAL=y
 CONFIG_MODULES_EVENTS:INTERNAL=y
 //BOARD DEFCONFIG: CONFIG_MODULES_FLIGHT_MODE_MANAGER
 CONFIG_MODULES_FLIGHT_MODE_MANAGER:INTERNAL=y
-//BOARD DEFCONFIG: CONFIG_MODULES_FW_ATT_CONTROL
-CONFIG_MODULES_FW_ATT_CONTROL:INTERNAL=
-//BOARD DEFCONFIG: CONFIG_MODULES_FW_AUTOTUNE_ATTITUDE_CONTROL
-CONFIG_MODULES_FW_AUTOTUNE_ATTITUDE_CONTROL:INTERNAL=
-//BOARD DEFCONFIG: CONFIG_MODULES_FW_LATERAL_LONGITUDINAL_CONTROL
-CONFIG_MODULES_FW_LATERAL_LONGITUDINAL_CONTROL:INTERNAL=
-//BOARD DEFCONFIG: CONFIG_MODULES_FW_MODE_MANAGER
-CONFIG_MODULES_FW_MODE_MANAGER:INTERNAL=
-//BOARD DEFCONFIG: CONFIG_MODULES_FW_RATE_CONTROL
-CONFIG_MODULES_FW_RATE_CONTROL:INTERNAL=
 //BOARD DEFCONFIG: CONFIG_MODULES_GIMBAL
 CONFIG_MODULES_GIMBAL:INTERNAL=y
 //BOARD DEFCONFIG: CONFIG_MODULES_GYRO_CALIBRATION
 CONFIG_MODULES_GYRO_CALIBRATION:INTERNAL=y
-//BOARD DEFCONFIG: CONFIG_MODULES_LANDING_TARGET_ESTIMATOR
-CONFIG_MODULES_LANDING_TARGET_ESTIMATOR:INTERNAL=
 //BOARD DEFCONFIG: CONFIG_MODULES_LAND_DETECTOR
 CONFIG_MODULES_LAND_DETECTOR:INTERNAL=y
 //BOARD DEFCONFIG: CONFIG_MODULES_LOAD_MON
@@ -1807,10 +1761,6 @@ CONFIG_MODULES_RC_UPDATE:INTERNAL=y
 CONFIG_MODULES_SENSORS:INTERNAL=y
 //BOARD DEFCONFIG: CONFIG_MODULES_TEMPERATURE_COMPENSATION
 CONFIG_MODULES_TEMPERATURE_COMPENSATION:INTERNAL=y
-//BOARD DEFCONFIG: CONFIG_MODULES_UXRCE_DDS_CLIENT
-CONFIG_MODULES_UXRCE_DDS_CLIENT:INTERNAL=
-//BOARD DEFCONFIG: CONFIG_MODULES_VTOL_ATT_CONTROL
-CONFIG_MODULES_VTOL_ATT_CONTROL:INTERNAL=
 //NUTTX DEFCONFIG: CONFIG_MTD
 CONFIG_MTD:INTERNAL=y
 //NUTTX DEFCONFIG: CONFIG_MTD_BYTE_WRITE
@@ -2565,10 +2515,6 @@ CONFIG_SYSLOG_DEFAULT:INTERNAL=y
 CONFIG_SYSLOG_DEVPATH:INTERNAL=/dev/ttyS1
 //NUTTX DEFCONFIG: CONFIG_SYSLOG_MAX_CHANNELS
 CONFIG_SYSLOG_MAX_CHANNELS:INTERNAL=1
-//BOARD DEFCONFIG: CONFIG_SYSTEMCMDS_ACTUATOR_TEST
-CONFIG_SYSTEMCMDS_ACTUATOR_TEST:INTERNAL=
-//BOARD DEFCONFIG: CONFIG_SYSTEMCMDS_BSONDUMP
-CONFIG_SYSTEMCMDS_BSONDUMP:INTERNAL=
 //BOARD DEFCONFIG: CONFIG_SYSTEMCMDS_DMESG
 CONFIG_SYSTEMCMDS_DMESG:INTERNAL=y
 //BOARD DEFCONFIG: CONFIG_SYSTEMCMDS_GPIO

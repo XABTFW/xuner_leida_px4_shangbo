@@ -58,6 +58,18 @@
 #define DYT_COMMAND_CMD_SEND_OWNSHIP_STATE 13
 #define DYT_COMMAND_CMD_GEO_TRACK 14
 #define DYT_COMMAND_CMD_GEO_TRACK_EXIT 15
+#define DYT_COMMAND_CMD_SET_INERTIAL_ANGLE 16
+#define DYT_COMMAND_CMD_TRACK_POINT 17
+#define DYT_COMMAND_CMD_AI_ENABLE 18
+#define DYT_COMMAND_CMD_AI_DISABLE 19
+#define DYT_COMMAND_CMD_TARGET_TYPE 20
+#define DYT_COMMAND_CMD_ASSIST_ENABLE 21
+#define DYT_COMMAND_CMD_ASSIST_DISABLE 22
+#define DYT_COMMAND_CMD_TRACK_ID 23
+#define DYT_COMMAND_CMD_IMAGE_MODE 24
+#define DYT_COMMAND_CMD_OSD_ENABLE 28
+#define DYT_COMMAND_CMD_OSD_DISABLE 29
+#define DYT_COMMAND_CMD_DETECTION_START 30
 
 #endif
 
@@ -70,6 +82,7 @@ struct dyt_command_s {
 	uint64_t timestamp;
 	double lat;
 	double lon;
+	uint32_t value;
 	float alt;
 	float rel_alt;
 	float roll_rad;
@@ -82,7 +95,7 @@ struct dyt_command_s {
 	uint8_t command;
 	uint8_t param3;
 	int8_t zoom_rate;
-	uint8_t _padding0[5]; // required for logger
+	uint8_t _padding0[1]; // required for logger
 
 
 #ifdef __cplusplus
@@ -103,6 +116,18 @@ struct dyt_command_s {
 	static constexpr uint8_t CMD_SEND_OWNSHIP_STATE = 13;
 	static constexpr uint8_t CMD_GEO_TRACK = 14;
 	static constexpr uint8_t CMD_GEO_TRACK_EXIT = 15;
+	static constexpr uint8_t CMD_SET_INERTIAL_ANGLE = 16;
+	static constexpr uint8_t CMD_TRACK_POINT = 17;
+	static constexpr uint8_t CMD_AI_ENABLE = 18;
+	static constexpr uint8_t CMD_AI_DISABLE = 19;
+	static constexpr uint8_t CMD_TARGET_TYPE = 20;
+	static constexpr uint8_t CMD_ASSIST_ENABLE = 21;
+	static constexpr uint8_t CMD_ASSIST_DISABLE = 22;
+	static constexpr uint8_t CMD_TRACK_ID = 23;
+	static constexpr uint8_t CMD_IMAGE_MODE = 24;
+	static constexpr uint8_t CMD_OSD_ENABLE = 28;
+	static constexpr uint8_t CMD_OSD_DISABLE = 29;
+	static constexpr uint8_t CMD_DETECTION_START = 30;
 
 #endif
 };

@@ -3,8 +3,8 @@
 {
 		"fields": "\u0089 timestamp;\u0089 timestamp_sample;\u008a[3] xyz;\u0086[4] _padding0;",
 		"fields_total_length": 79,
-		"orb_ids": [300, 301, 302],
-		"main_orb_id": 300,
+		"orb_ids": [301, 302, 303],
+		"main_orb_id": 301,
 		"dependencies": [],
 		"name": "px4/VehicleThrustSetpoint"
 }

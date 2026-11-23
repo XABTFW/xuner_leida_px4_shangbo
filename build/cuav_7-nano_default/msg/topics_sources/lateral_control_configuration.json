@@ -3,8 +3,8 @@
 {
 		"fields": "\u0089 timestamp;\u008a lateral_accel_max;\u0086[4] _padding0;",
 		"fields_total_length": 64,
-		"orb_ids": [144],
-		"main_orb_id": 144,
+		"orb_ids": [145],
+		"main_orb_id": 145,
 		"dependencies": [],
 		"name": "px4/LateralControlConfiguration"
 }

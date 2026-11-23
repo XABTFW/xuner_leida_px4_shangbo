@@ -3,8 +3,8 @@
 {
 		"fields": "\u0089 timestamp;\u0088 device_id;\u0087 len;\u0086 flags;\u0086[300] data;\u0086[5] _padding0;",
 		"fields_total_length": 104,
-		"orb_ids": [129],
-		"main_orb_id": 129,
+		"orb_ids": [130],
+		"main_orb_id": 130,
 		"dependencies": [],
 		"name": "px4/GpsInjectData"
 }

@@ -45,11 +45,11 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_thrust_setpoint) == 300, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_thrust_setpoint) == 301, "ORB_ID index mismatch");
 ORB_DEFINE(vehicle_thrust_setpoint, struct vehicle_thrust_setpoint_s, 28, 1728613989u, static_cast<orb_id_size_t>(ORB_ID::vehicle_thrust_setpoint), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_thrust_setpoint_virtual_fw) == 301, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_thrust_setpoint_virtual_fw) == 302, "ORB_ID index mismatch");
 ORB_DEFINE(vehicle_thrust_setpoint_virtual_fw, struct vehicle_thrust_setpoint_s, 28, 1728613989u, static_cast<orb_id_size_t>(ORB_ID::vehicle_thrust_setpoint_virtual_fw), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_thrust_setpoint_virtual_mc) == 302, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_thrust_setpoint_virtual_mc) == 303, "ORB_ID index mismatch");
 ORB_DEFINE(vehicle_thrust_setpoint_virtual_mc, struct vehicle_thrust_setpoint_s, 28, 1728613989u, static_cast<orb_id_size_t>(ORB_ID::vehicle_thrust_setpoint_virtual_mc), 1);
 
 

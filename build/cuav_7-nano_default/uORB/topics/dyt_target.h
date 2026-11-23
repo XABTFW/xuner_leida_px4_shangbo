@@ -45,6 +45,10 @@
 #define DYT_TARGET_TRACKING_STATE_LOCKED 1
 #define DYT_TARGET_TRACKING_STATE_TIMEOUT 2
 #define DYT_TARGET_TRACKING_STATE_ERROR 3
+#define DYT_TARGET_SERVO_STATUS_UNKNOWN 0
+#define DYT_TARGET_SERVO_STATUS_ONLINE 1
+#define DYT_TARGET_SERVO_STATUS_TIMEOUT 2
+#define DYT_TARGET_SERVO_STATUS_DATA_ERROR 3
 #define DYT_TARGET_VIDEO_SOURCE_VIS_1 0
 #define DYT_TARGET_VIDEO_SOURCE_VIS_2 1
 #define DYT_TARGET_VIDEO_SOURCE_IR_1 2
@@ -68,6 +72,7 @@ struct dyt_target_s {
 	float los_x_rad;
 	float los_y_rad;
 	float gimbal_roll_rad;
+	float gimbal_pitch_frame_rad;
 	float gimbal_pitch_rad;
 	float gimbal_yaw_rad;
 	float gimbal_roll_rate_rad_s;
@@ -80,6 +85,8 @@ struct dyt_target_s {
 	float frame_dt_s;
 	float last_rx_age_s;
 	uint16_t parse_error_count;
+	int16_t miss_x_px;
+	int16_t miss_y_px;
 	uint8_t tracking_state;
 	uint8_t video_source;
 	uint8_t tracking_algorithm;
@@ -98,6 +105,11 @@ struct dyt_target_s {
 	uint8_t status2;
 	uint8_t status3;
 	uint8_t self_test_raw;
+	uint8_t servo_mode;
+	uint8_t servo_status;
+	bool software_version_valid;
+	char tracker_software_version[8];
+	uint8_t _padding0[5]; // required for logger
 
 
 #ifdef __cplusplus
@@ -105,6 +117,10 @@ struct dyt_target_s {
 	static constexpr uint8_t TRACKING_STATE_LOCKED = 1;
 	static constexpr uint8_t TRACKING_STATE_TIMEOUT = 2;
 	static constexpr uint8_t TRACKING_STATE_ERROR = 3;
+	static constexpr uint8_t SERVO_STATUS_UNKNOWN = 0;
+	static constexpr uint8_t SERVO_STATUS_ONLINE = 1;
+	static constexpr uint8_t SERVO_STATUS_TIMEOUT = 2;
+	static constexpr uint8_t SERVO_STATUS_DATA_ERROR = 3;
 	static constexpr uint8_t VIDEO_SOURCE_VIS_1 = 0;
 	static constexpr uint8_t VIDEO_SOURCE_VIS_2 = 1;
 	static constexpr uint8_t VIDEO_SOURCE_IR_1 = 2;

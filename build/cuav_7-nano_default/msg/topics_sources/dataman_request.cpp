@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::dataman_request) == 34, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::dataman_request) == 35, "ORB_ID index mismatch");
 ORB_DEFINE(dataman_request, struct dataman_request_s, 75, 1010689725u, static_cast<orb_id_size_t>(ORB_ID::dataman_request), 1);
 
 

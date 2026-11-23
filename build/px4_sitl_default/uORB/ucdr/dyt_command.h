@@ -43,7 +43,7 @@
 
 static inline constexpr int ucdr_topic_size_dyt_command()
 {
-	return 60;
+	return 68;
 }
 
 static inline bool ucdr_serialize_dyt_command(const void* data, ucdrBuffer& buf, int64_t time_offset = 0)
@@ -76,6 +76,12 @@ static inline bool ucdr_serialize_dyt_command(const void* data, ucdrBuffer& buf,
 	memcpy(buf.iterator, &topic.zoom_rate, sizeof(topic.zoom_rate));
 	buf.iterator += sizeof(topic.zoom_rate);
 	buf.offset += sizeof(topic.zoom_rate);
+	static_assert(sizeof(topic.value) == 4, "size mismatch");
+	memcpy(buf.iterator, &topic.value, sizeof(topic.value));
+	buf.iterator += sizeof(topic.value);
+	buf.offset += sizeof(topic.value);
+	buf.iterator += 4; // padding
+	buf.offset += 4; // padding
 	static_assert(sizeof(topic.lat) == 8, "size mismatch");
 	memcpy(buf.iterator, &topic.lat, sizeof(topic.lat));
 	buf.iterator += sizeof(topic.lat);
@@ -145,6 +151,12 @@ static inline bool ucdr_deserialize_dyt_command(ucdrBuffer& buf, dyt_command_s& 
 	memcpy(&topic.zoom_rate, buf.iterator, sizeof(topic.zoom_rate));
 	buf.iterator += sizeof(topic.zoom_rate);
 	buf.offset += sizeof(topic.zoom_rate);
+	static_assert(sizeof(topic.value) == 4, "size mismatch");
+	memcpy(&topic.value, buf.iterator, sizeof(topic.value));
+	buf.iterator += sizeof(topic.value);
+	buf.offset += sizeof(topic.value);
+	buf.iterator += 4; // padding
+	buf.offset += 4; // padding
 	static_assert(sizeof(topic.lat) == 8, "size mismatch");
 	memcpy(&topic.lat, buf.iterator, sizeof(topic.lat));
 	buf.iterator += sizeof(topic.lat);

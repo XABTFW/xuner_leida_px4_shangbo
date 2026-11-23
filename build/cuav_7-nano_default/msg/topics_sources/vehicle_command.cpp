@@ -45,11 +45,11 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_command) == 278, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_command) == 279, "ORB_ID index mismatch");
 ORB_DEFINE(vehicle_command, struct vehicle_command_s, 55, 3416593583u, static_cast<orb_id_size_t>(ORB_ID::vehicle_command), 8);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::gimbal_v1_command) == 122, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::gimbal_v1_command) == 123, "ORB_ID index mismatch");
 ORB_DEFINE(gimbal_v1_command, struct vehicle_command_s, 55, 3416593583u, static_cast<orb_id_size_t>(ORB_ID::gimbal_v1_command), 8);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_command_mode_executor) == 280, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_command_mode_executor) == 281, "ORB_ID index mismatch");
 ORB_DEFINE(vehicle_command_mode_executor, struct vehicle_command_s, 55, 3416593583u, static_cast<orb_id_size_t>(ORB_ID::vehicle_command_mode_executor), 8);
 
 

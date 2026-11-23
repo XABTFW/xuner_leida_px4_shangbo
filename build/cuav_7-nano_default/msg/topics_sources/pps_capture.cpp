@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::pps_capture) == 200, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::pps_capture) == 201, "ORB_ID index mismatch");
 ORB_DEFINE(pps_capture, struct pps_capture_s, 17, 3333608066u, static_cast<orb_id_size_t>(ORB_ID::pps_capture), 1);
 
 

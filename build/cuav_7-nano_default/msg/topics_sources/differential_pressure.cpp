@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::differential_pressure) == 40, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::differential_pressure) == 41, "ORB_ID index mismatch");
 ORB_DEFINE(differential_pressure, struct differential_pressure_s, 32, 2188515071u, static_cast<orb_id_size_t>(ORB_ID::differential_pressure), 1);
 
 

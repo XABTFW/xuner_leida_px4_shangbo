@@ -45,9 +45,9 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_bias3d) == 73, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_bias3d) == 74, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_bias3d, struct estimator_bias3d_s, 80, 3792341590u, static_cast<orb_id_size_t>(ORB_ID::estimator_bias3d), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_ev_pos_bias) == 74, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_ev_pos_bias) == 75, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_ev_pos_bias, struct estimator_bias3d_s, 80, 3792341590u, static_cast<orb_id_size_t>(ORB_ID::estimator_ev_pos_bias), 1);
 
 

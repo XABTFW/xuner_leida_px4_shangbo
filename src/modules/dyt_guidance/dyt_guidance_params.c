@@ -135,6 +135,21 @@ PARAM_DEFINE_FLOAT(DYTG_TGT_ALTOFF, 0.0f);
 PARAM_DEFINE_FLOAT(DYTG_MNT_PRED, 0.0f);
 
 /**
+ * Midcourse gimbal angle mode
+ *
+ * Selects how PX4 computes midcourse frame-angle commands. Mode 0 keeps the
+ * legacy body/mount-relative yaw and pitch. Mode 1 keeps the legacy
+ * body/mount-relative yaw but uses inertial/horizon LOS elevation for pitch.
+ *
+ * @value 0 Body frame
+ * @value 1 Inertial pitch only
+ * @min 0
+ * @max 1
+ * @group DYT Guidance
+ */
+PARAM_DEFINE_INT32(DYTG_MNT_MODE, 1);
+
+/**
  * Manual takeover stick threshold
  *
  * @min 0.05
@@ -147,9 +162,16 @@ PARAM_DEFINE_FLOAT(DYTG_STK_TK, 0.30f);
 /**
  * Enable automatic guidance activation from detected target hints
  *
- * When enabled, the activation AUX/button/payload switch gates automatic
- * tracking: switch on, then guidance arms its tracking workflow after a target
- * lock candidate is visible for DYTG_AUTO_N consecutive frames.
+ * When enabled, full automatic locking is active and no
+ * activation AUX/button is required. After recognition value
+ * 100 remains continuously valid for 0.4 seconds, guidance starts a
+ * DYTG_LOCK_MS lock window and sends a 0x06 request every 500 ms until the
+ * payload reports that tracking acquisition is in progress. A failed window
+ * ends tracking, restarts detection, and allows persistent recognition to
+ * qualify for another attempt after a new 0.4-second hold.
+ * Selecting another flight mode exits the automatic terminal-guidance session.
+ * An explicit activation AUX/button rising edge continues to request tracking
+ * directly, independently of payload recognition.
  *
  * @boolean
  * @group DYT Guidance
@@ -157,31 +179,19 @@ PARAM_DEFINE_FLOAT(DYTG_STK_TK, 0.30f);
 PARAM_DEFINE_INT32(DYTG_AUTO_EN, 0);
 
 /**
- * Consecutive candidate frames for automatic guidance activation
+ * Lock request protection time
  *
- * @min 1
- * @max 30
+ * Time reserved for the payload to complete a 0x06 lock request. During this
+ * interval, pointing or search commands do not replace the tracking request.
+ * The search-wait timeout is never shorter than this value.
+ *
+ * @unit ms
+ * @min 100
+ * @max 10000
  * @group DYT Guidance
  */
-PARAM_DEFINE_INT32(DYTG_AUTO_N, 5);
+PARAM_DEFINE_INT32(DYTG_LOCK_MS, 2000);
 
-/**
- * Consecutive lock frames to enter tracking
- *
- * @min 1
- * @max 20
- * @group DYT Guidance
- */
-PARAM_DEFINE_INT32(DYTG_LOCK_N, 4);
-
-/**
- * Consecutive lock frames to recover from lost hold
- *
- * @min 1
- * @max 20
- * @group DYT Guidance
- */
-PARAM_DEFINE_INT32(DYTG_RELOCKN, 3);
 
 /**
  * Search wait timeout
@@ -836,3 +846,55 @@ PARAM_DEFINE_FLOAT(DYTG_MNT_P, 0.f);
  * @group DYT Guidance
  */
 PARAM_DEFINE_FLOAT(DYTG_MNT_Y, 0.f);
+
+/**
+ * Gimbal frame yaw minimum
+ *
+ * Minimum yaw frame angle that DYT guidance may command.
+ *
+ * @unit deg
+ * @min -180
+ * @max 0
+ * @decimal 1
+ * @group DYT Guidance
+ */
+PARAM_DEFINE_FLOAT(DYTG_YAW_MIN, -40.f);
+
+/**
+ * Gimbal frame yaw maximum
+ *
+ * Maximum yaw frame angle that DYT guidance may command.
+ *
+ * @unit deg
+ * @min 0
+ * @max 180
+ * @decimal 1
+ * @group DYT Guidance
+ */
+PARAM_DEFINE_FLOAT(DYTG_YAW_MAX, 40.f);
+
+/**
+ * Gimbal frame pitch minimum
+ *
+ * Minimum pitch frame angle that DYT guidance may command.
+ *
+ * @unit deg
+ * @min -180
+ * @max 0
+ * @decimal 1
+ * @group DYT Guidance
+ */
+PARAM_DEFINE_FLOAT(DYTG_PIT_MIN, -90.f);
+
+/**
+ * Gimbal frame pitch maximum
+ *
+ * Maximum pitch frame angle that DYT guidance may command.
+ *
+ * @unit deg
+ * @min 0
+ * @max 180
+ * @decimal 1
+ * @group DYT Guidance
+ */
+PARAM_DEFINE_FLOAT(DYTG_PIT_MAX, 40.f);

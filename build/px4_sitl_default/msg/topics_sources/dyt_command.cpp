@@ -45,8 +45,8 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::dyt_command) == 43, "ORB_ID index mismatch");
-ORB_DEFINE(dyt_command, struct dyt_command_s, 59, 3005712258u, static_cast<orb_id_size_t>(ORB_ID::dyt_command), 8);
+static_assert(static_cast<orb_id_size_t>(ORB_ID::dyt_command) == 44, "ORB_ID index mismatch");
+ORB_DEFINE(dyt_command, struct dyt_command_s, 63, 1768123448u, static_cast<orb_id_size_t>(ORB_ID::dyt_command), 8);
 
 
 void print_message(const orb_metadata *meta, const dyt_command_s& message)

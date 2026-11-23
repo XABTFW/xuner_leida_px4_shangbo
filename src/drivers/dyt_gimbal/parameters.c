@@ -346,17 +346,3 @@ PARAM_DEFINE_INT32(DYT_IR_H, 720);
  * @group DYT Gimbal
  */
 PARAM_DEFINE_INT32(DYT_TRK_VAL, 1);
-
-/**
- * DYT tracking command protection window
- *
- * Ignore angle, home and scan commands briefly after a tracking request so
- * existing pointing commands cannot immediately cancel the payload lock.
- * A stop-track command remains effective during this window.
- *
- * @unit ms
- * @min 100
- * @max 10000
- * @group DYT Gimbal
- */
-PARAM_DEFINE_INT32(DYT_LOCK_MS, 2000);

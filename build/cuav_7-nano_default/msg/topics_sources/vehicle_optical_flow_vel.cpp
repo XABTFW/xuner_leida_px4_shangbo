@@ -45,9 +45,9 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_optical_flow_vel) == 84, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_optical_flow_vel) == 85, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_optical_flow_vel, struct vehicle_optical_flow_vel_s, 100, 1794347135u, static_cast<orb_id_size_t>(ORB_ID::estimator_optical_flow_vel), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_optical_flow_vel) == 296, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_optical_flow_vel) == 297, "ORB_ID index mismatch");
 ORB_DEFINE(vehicle_optical_flow_vel, struct vehicle_optical_flow_vel_s, 100, 1794347135u, static_cast<orb_id_size_t>(ORB_ID::vehicle_optical_flow_vel), 1);
 
 

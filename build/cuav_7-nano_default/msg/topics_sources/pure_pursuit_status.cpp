@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::pure_pursuit_status) == 201, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::pure_pursuit_status) == 202, "ORB_ID index mismatch");
 ORB_DEFINE(pure_pursuit_status, struct pure_pursuit_status_s, 28, 1855668171u, static_cast<orb_id_size_t>(ORB_ID::pure_pursuit_status), 1);
 
 

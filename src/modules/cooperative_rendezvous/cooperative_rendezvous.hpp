@@ -10,6 +10,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/cooperative_position.h>
+#include <uORB/topics/cooperative_rendezvous_status.h>
 #include <uORB/topics/dyt_guidance_status.h>
 #include <uORB/topics/follower_info.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -59,6 +60,7 @@ public:
 
 private:
 	void Run() override;
+	void publish_status(const vehicle_status_s &status, bool local_position_is_valid, bool controlling_vehicle);
 
 	void update_params_if_needed();
 	void update_vehicle_id();
@@ -133,6 +135,7 @@ private:
 	uORB::Subscription _dyt_guidance_status_sub{ORB_ID(dyt_guidance_status)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	uORB::Publication<cooperative_rendezvous_status_s> _status_pub{ORB_ID(cooperative_rendezvous_status)};
 	uORB::Publication<cooperative_position_s> _cooperative_position_pub{ORB_ID(cooperative_position)};
 	uORB::Publication<offboard_control_mode_s> _offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};

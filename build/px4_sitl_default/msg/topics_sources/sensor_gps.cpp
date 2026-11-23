@@ -45,9 +45,9 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::sensor_gps) == 234, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::sensor_gps) == 235, "ORB_ID index mismatch");
 ORB_DEFINE(sensor_gps, struct sensor_gps_s, 142, 1054822089u, static_cast<orb_id_size_t>(ORB_ID::sensor_gps), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_gps_position) == 285, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_gps_position) == 286, "ORB_ID index mismatch");
 ORB_DEFINE(vehicle_gps_position, struct sensor_gps_s, 142, 1054822089u, static_cast<orb_id_size_t>(ORB_ID::vehicle_gps_position), 1);
 
 

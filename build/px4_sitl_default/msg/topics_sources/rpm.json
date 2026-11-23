@@ -3,8 +3,8 @@
 {
 		"fields": "\u0089 timestamp;\u008a rpm_estimate;\u008a rpm_raw;",
 		"fields_total_length": 52,
-		"orb_ids": [222],
-		"main_orb_id": 222,
+		"orb_ids": [223],
+		"main_orb_id": 223,
 		"dependencies": [],
 		"name": "px4/Rpm"
 }

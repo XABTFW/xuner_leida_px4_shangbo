@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::fixed_wing_longitudinal_setpoint) == 101, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::fixed_wing_longitudinal_setpoint) == 102, "ORB_ID index mismatch");
 ORB_DEFINE(fixed_wing_longitudinal_setpoint, struct fixed_wing_longitudinal_setpoint_s, 28, 3942119002u, static_cast<orb_id_size_t>(ORB_ID::fixed_wing_longitudinal_setpoint), 1);
 
 

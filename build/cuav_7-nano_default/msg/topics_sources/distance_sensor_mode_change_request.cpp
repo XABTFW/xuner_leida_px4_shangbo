@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::distance_sensor_mode_change_request) == 42, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::distance_sensor_mode_change_request) == 43, "ORB_ID index mismatch");
 ORB_DEFINE(distance_sensor_mode_change_request, struct distance_sensor_mode_change_request_s, 9, 932707816u, static_cast<orb_id_size_t>(ORB_ID::distance_sensor_mode_change_request), 1);
 
 

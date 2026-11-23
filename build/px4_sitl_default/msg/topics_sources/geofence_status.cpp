@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::geofence_status) == 113, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::geofence_status) == 114, "ORB_ID index mismatch");
 ORB_DEFINE(geofence_status, struct geofence_status_s, 13, 1587089626u, static_cast<orb_id_size_t>(ORB_ID::geofence_status), 1);
 
 

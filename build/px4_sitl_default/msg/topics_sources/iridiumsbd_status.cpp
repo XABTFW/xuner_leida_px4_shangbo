@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::iridiumsbd_status) == 138, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::iridiumsbd_status) == 139, "ORB_ID index mismatch");
 ORB_DEFINE(iridiumsbd_status, struct iridiumsbd_status_s, 35, 3656281519u, static_cast<orb_id_size_t>(ORB_ID::iridiumsbd_status), 1);
 
 

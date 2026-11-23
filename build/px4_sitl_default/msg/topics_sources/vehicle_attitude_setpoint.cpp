@@ -45,11 +45,11 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_attitude_setpoint) == 277, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::vehicle_attitude_setpoint) == 278, "ORB_ID index mismatch");
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s, 40, 93436762u, static_cast<orb_id_size_t>(ORB_ID::vehicle_attitude_setpoint), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::mc_virtual_attitude_setpoint) == 158, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::mc_virtual_attitude_setpoint) == 159, "ORB_ID index mismatch");
 ORB_DEFINE(mc_virtual_attitude_setpoint, struct vehicle_attitude_setpoint_s, 40, 93436762u, static_cast<orb_id_size_t>(ORB_ID::mc_virtual_attitude_setpoint), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::fw_virtual_attitude_setpoint) == 110, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::fw_virtual_attitude_setpoint) == 111, "ORB_ID index mismatch");
 ORB_DEFINE(fw_virtual_attitude_setpoint, struct vehicle_attitude_setpoint_s, 40, 93436762u, static_cast<orb_id_size_t>(ORB_ID::fw_virtual_attitude_setpoint), 1);
 
 

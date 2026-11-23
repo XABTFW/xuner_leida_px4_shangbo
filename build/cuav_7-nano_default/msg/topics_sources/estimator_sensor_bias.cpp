@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_sensor_bias) == 86, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_sensor_bias) == 87, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_sensor_bias, struct estimator_sensor_bias_s, 118, 1767594550u, static_cast<orb_id_size_t>(ORB_ID::estimator_sensor_bias), 1);
 
 

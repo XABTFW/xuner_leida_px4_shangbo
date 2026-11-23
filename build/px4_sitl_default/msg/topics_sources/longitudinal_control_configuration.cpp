@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::longitudinal_control_configuration) == 150, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::longitudinal_control_configuration) == 151, "ORB_ID index mismatch");
 ORB_DEFINE(longitudinal_control_configuration, struct longitudinal_control_configuration_s, 38, 2053617963u, static_cast<orb_id_size_t>(ORB_ID::longitudinal_control_configuration), 1);
 
 

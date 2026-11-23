@@ -45,11 +45,11 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_innovations) == 81, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_innovations) == 82, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_innovations, struct estimator_innovations_s, 140, 1622719395u, static_cast<orb_id_size_t>(ORB_ID::estimator_innovations), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_innovation_variances) == 80, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_innovation_variances) == 81, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_innovation_variances, struct estimator_innovations_s, 140, 1622719395u, static_cast<orb_id_size_t>(ORB_ID::estimator_innovation_variances), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_innovation_test_ratios) == 79, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_innovation_test_ratios) == 80, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_innovation_test_ratios, struct estimator_innovations_s, 140, 1622719395u, static_cast<orb_id_size_t>(ORB_ID::estimator_innovation_test_ratios), 1);
 
 

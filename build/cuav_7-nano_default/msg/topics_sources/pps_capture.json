@@ -3,8 +3,8 @@
 {
 		"fields": "\u0089 timestamp;\u0089 rtc_timestamp;\u0086 pps_rate_exceeded_counter;\u0086[7] _padding0;",
 		"fields_total_length": 97,
-		"orb_ids": [200],
-		"main_orb_id": 200,
+		"orb_ids": [201],
+		"main_orb_id": 201,
 		"dependencies": [],
 		"name": "px4/PpsCapture"
 }

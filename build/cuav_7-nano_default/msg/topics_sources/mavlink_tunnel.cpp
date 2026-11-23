@@ -45,9 +45,9 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::mavlink_tunnel) == 157, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::mavlink_tunnel) == 158, "ORB_ID index mismatch");
 ORB_DEFINE(mavlink_tunnel, struct mavlink_tunnel_s, 141, 1911737803u, static_cast<orb_id_size_t>(ORB_ID::mavlink_tunnel), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::esc_serial_passthru) == 49, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::esc_serial_passthru) == 50, "ORB_ID index mismatch");
 ORB_DEFINE(esc_serial_passthru, struct mavlink_tunnel_s, 141, 1911737803u, static_cast<orb_id_size_t>(ORB_ID::esc_serial_passthru), 1);
 
 

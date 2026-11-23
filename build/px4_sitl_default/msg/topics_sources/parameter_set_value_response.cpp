@@ -45,11 +45,11 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::parameter_set_value_response) == 191, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::parameter_set_value_response) == 192, "ORB_ID index mismatch");
 ORB_DEFINE(parameter_set_value_response, struct parameter_set_value_response_s, 18, 1743130906u, static_cast<orb_id_size_t>(ORB_ID::parameter_set_value_response), 4);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::parameter_remote_set_value_response) == 187, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::parameter_remote_set_value_response) == 188, "ORB_ID index mismatch");
 ORB_DEFINE(parameter_remote_set_value_response, struct parameter_set_value_response_s, 18, 1743130906u, static_cast<orb_id_size_t>(ORB_ID::parameter_remote_set_value_response), 4);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::parameter_primary_set_value_response) == 185, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::parameter_primary_set_value_response) == 186, "ORB_ID index mismatch");
 ORB_DEFINE(parameter_primary_set_value_response, struct parameter_set_value_response_s, 18, 1743130906u, static_cast<orb_id_size_t>(ORB_ID::parameter_primary_set_value_response), 4);
 
 

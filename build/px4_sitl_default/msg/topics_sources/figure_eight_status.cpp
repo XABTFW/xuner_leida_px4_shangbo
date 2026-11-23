@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::figure_eight_status) == 97, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::figure_eight_status) == 98, "ORB_ID index mismatch");
 ORB_DEFINE(figure_eight_status, struct figure_eight_status_s, 33, 3156526641u, static_cast<orb_id_size_t>(ORB_ID::figure_eight_status), 1);
 
 

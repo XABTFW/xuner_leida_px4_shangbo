@@ -45,13 +45,13 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_ev_vel) == 58, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_ev_vel) == 59, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_ev_vel, struct estimator_aid_source3d_s, 115, 798949413u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_ev_vel), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gnss_vel) == 64, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gnss_vel) == 65, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_gnss_vel, struct estimator_aid_source3d_s, 115, 798949413u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gnss_vel), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gravity) == 66, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gravity) == 67, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_gravity, struct estimator_aid_source3d_s, 115, 798949413u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gravity), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_mag) == 67, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_mag) == 68, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_mag, struct estimator_aid_source3d_s, 115, 798949413u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_mag), 1);
 
 

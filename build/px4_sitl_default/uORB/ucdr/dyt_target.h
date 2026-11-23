@@ -43,7 +43,7 @@
 
 static inline constexpr int ucdr_topic_size_dyt_target()
 {
-	return 98;
+	return 117;
 }
 
 static inline bool ucdr_serialize_dyt_target(const void* data, ucdrBuffer& buf, int64_t time_offset = 0)
@@ -133,6 +133,10 @@ static inline bool ucdr_serialize_dyt_target(const void* data, ucdrBuffer& buf, 
 	memcpy(buf.iterator, &topic.gimbal_roll_rad, sizeof(topic.gimbal_roll_rad));
 	buf.iterator += sizeof(topic.gimbal_roll_rad);
 	buf.offset += sizeof(topic.gimbal_roll_rad);
+	static_assert(sizeof(topic.gimbal_pitch_frame_rad) == 4, "size mismatch");
+	memcpy(buf.iterator, &topic.gimbal_pitch_frame_rad, sizeof(topic.gimbal_pitch_frame_rad));
+	buf.iterator += sizeof(topic.gimbal_pitch_frame_rad);
+	buf.offset += sizeof(topic.gimbal_pitch_frame_rad);
 	static_assert(sizeof(topic.gimbal_pitch_rad) == 4, "size mismatch");
 	memcpy(buf.iterator, &topic.gimbal_pitch_rad, sizeof(topic.gimbal_pitch_rad));
 	buf.iterator += sizeof(topic.gimbal_pitch_rad);
@@ -197,6 +201,30 @@ static inline bool ucdr_serialize_dyt_target(const void* data, ucdrBuffer& buf, 
 	memcpy(buf.iterator, &topic.self_test_raw, sizeof(topic.self_test_raw));
 	buf.iterator += sizeof(topic.self_test_raw);
 	buf.offset += sizeof(topic.self_test_raw);
+	static_assert(sizeof(topic.miss_x_px) == 2, "size mismatch");
+	memcpy(buf.iterator, &topic.miss_x_px, sizeof(topic.miss_x_px));
+	buf.iterator += sizeof(topic.miss_x_px);
+	buf.offset += sizeof(topic.miss_x_px);
+	static_assert(sizeof(topic.miss_y_px) == 2, "size mismatch");
+	memcpy(buf.iterator, &topic.miss_y_px, sizeof(topic.miss_y_px));
+	buf.iterator += sizeof(topic.miss_y_px);
+	buf.offset += sizeof(topic.miss_y_px);
+	static_assert(sizeof(topic.servo_mode) == 1, "size mismatch");
+	memcpy(buf.iterator, &topic.servo_mode, sizeof(topic.servo_mode));
+	buf.iterator += sizeof(topic.servo_mode);
+	buf.offset += sizeof(topic.servo_mode);
+	static_assert(sizeof(topic.servo_status) == 1, "size mismatch");
+	memcpy(buf.iterator, &topic.servo_status, sizeof(topic.servo_status));
+	buf.iterator += sizeof(topic.servo_status);
+	buf.offset += sizeof(topic.servo_status);
+	static_assert(sizeof(topic.software_version_valid) == 1, "size mismatch");
+	memcpy(buf.iterator, &topic.software_version_valid, sizeof(topic.software_version_valid));
+	buf.iterator += sizeof(topic.software_version_valid);
+	buf.offset += sizeof(topic.software_version_valid);
+	static_assert(sizeof(topic.tracker_software_version) == 8, "size mismatch");
+	memcpy(buf.iterator, &topic.tracker_software_version, sizeof(topic.tracker_software_version));
+	buf.iterator += sizeof(topic.tracker_software_version);
+	buf.offset += sizeof(topic.tracker_software_version);
 	return true;
 }
 
@@ -288,6 +316,10 @@ static inline bool ucdr_deserialize_dyt_target(ucdrBuffer& buf, dyt_target_s& to
 	memcpy(&topic.gimbal_roll_rad, buf.iterator, sizeof(topic.gimbal_roll_rad));
 	buf.iterator += sizeof(topic.gimbal_roll_rad);
 	buf.offset += sizeof(topic.gimbal_roll_rad);
+	static_assert(sizeof(topic.gimbal_pitch_frame_rad) == 4, "size mismatch");
+	memcpy(&topic.gimbal_pitch_frame_rad, buf.iterator, sizeof(topic.gimbal_pitch_frame_rad));
+	buf.iterator += sizeof(topic.gimbal_pitch_frame_rad);
+	buf.offset += sizeof(topic.gimbal_pitch_frame_rad);
 	static_assert(sizeof(topic.gimbal_pitch_rad) == 4, "size mismatch");
 	memcpy(&topic.gimbal_pitch_rad, buf.iterator, sizeof(topic.gimbal_pitch_rad));
 	buf.iterator += sizeof(topic.gimbal_pitch_rad);
@@ -352,5 +384,29 @@ static inline bool ucdr_deserialize_dyt_target(ucdrBuffer& buf, dyt_target_s& to
 	memcpy(&topic.self_test_raw, buf.iterator, sizeof(topic.self_test_raw));
 	buf.iterator += sizeof(topic.self_test_raw);
 	buf.offset += sizeof(topic.self_test_raw);
+	static_assert(sizeof(topic.miss_x_px) == 2, "size mismatch");
+	memcpy(&topic.miss_x_px, buf.iterator, sizeof(topic.miss_x_px));
+	buf.iterator += sizeof(topic.miss_x_px);
+	buf.offset += sizeof(topic.miss_x_px);
+	static_assert(sizeof(topic.miss_y_px) == 2, "size mismatch");
+	memcpy(&topic.miss_y_px, buf.iterator, sizeof(topic.miss_y_px));
+	buf.iterator += sizeof(topic.miss_y_px);
+	buf.offset += sizeof(topic.miss_y_px);
+	static_assert(sizeof(topic.servo_mode) == 1, "size mismatch");
+	memcpy(&topic.servo_mode, buf.iterator, sizeof(topic.servo_mode));
+	buf.iterator += sizeof(topic.servo_mode);
+	buf.offset += sizeof(topic.servo_mode);
+	static_assert(sizeof(topic.servo_status) == 1, "size mismatch");
+	memcpy(&topic.servo_status, buf.iterator, sizeof(topic.servo_status));
+	buf.iterator += sizeof(topic.servo_status);
+	buf.offset += sizeof(topic.servo_status);
+	static_assert(sizeof(topic.software_version_valid) == 1, "size mismatch");
+	memcpy(&topic.software_version_valid, buf.iterator, sizeof(topic.software_version_valid));
+	buf.iterator += sizeof(topic.software_version_valid);
+	buf.offset += sizeof(topic.software_version_valid);
+	static_assert(sizeof(topic.tracker_software_version) == 8, "size mismatch");
+	memcpy(&topic.tracker_software_version, buf.iterator, sizeof(topic.tracker_software_version));
+	buf.iterator += sizeof(topic.tracker_software_version);
+	buf.offset += sizeof(topic.tracker_software_version);
 	return true;
 }

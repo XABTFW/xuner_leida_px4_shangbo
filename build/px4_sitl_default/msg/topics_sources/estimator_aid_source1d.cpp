@@ -45,23 +45,23 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_baro_hgt) == 54, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_baro_hgt) == 55, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_baro_hgt, struct estimator_aid_source1d_s, 59, 4008362038u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_baro_hgt), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_ev_hgt) == 56, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_ev_hgt) == 57, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_ev_hgt, struct estimator_aid_source1d_s, 59, 4008362038u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_ev_hgt), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gnss_hgt) == 62, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gnss_hgt) == 63, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_gnss_hgt, struct estimator_aid_source1d_s, 59, 4008362038u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gnss_hgt), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_rng_hgt) == 69, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_rng_hgt) == 70, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_rng_hgt, struct estimator_aid_source1d_s, 59, 4008362038u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_rng_hgt), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_airspeed) == 51, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_airspeed) == 52, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_airspeed, struct estimator_aid_source1d_s, 59, 4008362038u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_airspeed), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_sideslip) == 70, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_sideslip) == 71, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_sideslip, struct estimator_aid_source1d_s, 59, 4008362038u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_sideslip), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_fake_hgt) == 60, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_fake_hgt) == 61, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_fake_hgt, struct estimator_aid_source1d_s, 59, 4008362038u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_fake_hgt), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gnss_yaw) == 65, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gnss_yaw) == 66, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_gnss_yaw, struct estimator_aid_source1d_s, 59, 4008362038u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_gnss_yaw), 1);
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_ev_yaw) == 59, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_ev_yaw) == 60, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_aid_src_ev_yaw, struct estimator_aid_source1d_s, 59, 4008362038u, static_cast<orb_id_size_t>(ORB_ID::estimator_aid_src_ev_yaw), 1);
 
 

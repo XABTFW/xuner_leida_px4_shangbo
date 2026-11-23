@@ -16,6 +16,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/cooperative_rendezvous_status.h>
 #include <uORB/topics/dyt_command.h>
 #include <uORB/topics/dyt_guidance_status.h>
 #include <uORB/topics/dyt_target.h>
@@ -62,14 +63,14 @@ public:
 
 private:
 	static constexpr int OBS_BUFFER_LEN{6};
+	static constexpr uint8_t PAYLOAD_MODE_TRACK{0x06};
+	static constexpr hrt_abstime AUTO_RECOGNITION_HOLD{400_ms};
+	static constexpr hrt_abstime AUTO_LOCK_CONFIRM_HOLD{400_ms};
+	static constexpr hrt_abstime AUTO_LOCK_RETRY_INTERVAL{500_ms};
 	static constexpr float TARGET_MIN_BBOX_PX{4.f};
 	static constexpr float TARGET_MAX_LOS_RAD{0.45f};
 	static constexpr float TARGET_MAX_HINT_LOS_RAD{0.35f};
 	static constexpr float TARGET_MAX_GIMBAL_YAW_RAD{1.92f};
-	static constexpr float FRAME_YAW_MIN_DEG{-110.f};
-	static constexpr float FRAME_YAW_MAX_DEG{110.f};
-	static constexpr float FRAME_PITCH_MIN_DEG{-100.f};
-	static constexpr float FRAME_PITCH_MAX_DEG{40.f};
 	static constexpr float MIDCOURSE_RESEND_ANGLE_DELTA_DEG{0.5f};
 	static constexpr int MIDCOURSE_BURST_COUNT{3};
 	static constexpr hrt_abstime MIDCOURSE_BURST_INTERVAL{40_ms};
@@ -146,7 +147,8 @@ private:
 	float track_handoff_blend(hrt_abstime now) const;
 
 	void enter_state(TaskState new_state, uint8_t lost_reason = dyt_guidance_status_s::LOST_REASON_NONE);
-	void activate_guidance(hrt_abstime now);
+	bool activate_guidance(hrt_abstime now);
+	void activate_guidance_and_request_lock(hrt_abstime now);
 	void deactivate_guidance(uint8_t lost_reason);
 	void abort_guidance(uint8_t lost_reason);
 	void enter_lost_hold(uint8_t lost_reason);
@@ -154,6 +156,18 @@ private:
 	void update_payload_only_reacquire(hrt_abstime now);
 
 	bool target_locked() const;
+	bool payload_lock_in_progress() const;
+	bool lock_confirmation_stable();
+	bool target_hint_cleared() const;
+	bool cooperative_status_fresh() const;
+	bool terminal_entry_from_midcourse() const;
+	bool automatic_lock_command_allowed() const;
+	bool vehicle_status_fresh() const;
+	bool offboard_control_active() const;
+	void reset_automatic_session();
+	bool update_automatic_lock_attempts(hrt_abstime now);
+	void handle_tracking_loss(uint8_t lost_reason);
+
 	bool target_geometry_valid(const dyt_target_s &target) const;
 	bool target_geometry_valid() const;
 	bool target_hint_detected() const;
@@ -179,9 +193,11 @@ private:
 	bool midcourse_target_alt_amsl(float &altitude_amsl) const;
 	bool midcourse_target_position_local(Vector3f &target_position) const;
 	bool compute_midcourse_gimbal_angle(float &yaw_deg, float &pitch_deg) const;
-	Vector3f rotate_body_los_to_mount(const Vector3f &los_body) const;
+	bool compute_midcourse_inertial_angles(const Vector3f &los_ned, float &yaw_deg, float &pitch_deg) const;
 	Vector3f rotate_mount_los_to_body(const Vector3f &los_mount) const;
 	float finite_param_deg(float value) const;
+	void frame_angle_limits(float &yaw_min_deg, float &yaw_max_deg, float &pitch_min_deg,
+				float &pitch_max_deg) const;
 	bool update_midcourse_pointing(hrt_abstime now, bool force = false);
 	bool update_midcourse_geo_tracking(hrt_abstime now, bool force = false);
 	bool update_midcourse_gimbal_pointing(hrt_abstime now, bool force = false);
@@ -209,10 +225,6 @@ private:
 	bool _payload_lock_seen{false};
 	bool _payload_lost_hold{false};
 	bool _midcourse_handoff_latched{false};
-	int _lock_streak{0};
-	int _relock_streak{0};
-	int _lost_streak{0};
-	int _auto_lock_streak{0};
 	ScanRegion _scan_region{ScanRegion::Center};
 	int _scan_center_passes{0};
 	int _scan_row{0};
@@ -223,6 +235,7 @@ private:
 	hrt_abstime _last_offboard_request{0};
 	hrt_abstime _last_home_command_time{0};
 	hrt_abstime _last_retrigger_time{0};
+	hrt_abstime _last_lock_command_time{0};
 	hrt_abstime _last_hint_lock_time{0};
 	hrt_abstime _search_pause_until{0};
 	hrt_abstime _next_scan_time{0};
@@ -231,6 +244,16 @@ private:
 	hrt_abstime _candidate_ignore_until{0};
 	hrt_abstime _candidate_ignored_sample_time{0};
 	hrt_abstime _auto_lock_last_sample_time{0};
+	hrt_abstime _auto_lock_last_attempt_time{0};
+	hrt_abstime _auto_recognition_start_time{0};
+	hrt_abstime _lock_confirmation_start_time{0};
+	hrt_abstime _lock_confirmation_last_sample_time{0};
+	bool _automatic_session_active{false};
+	bool _automatic_offboard_seen{false};
+	bool _automatic_rearm_blocked{false};
+	bool _automatic_operator_exit_blocked{false};
+	uint8_t _automatic_initial_nav_intention{UINT8_MAX};
+	cooperative_rendezvous_status_s _cooperative_status{};
 	bool _candidate_lock_active{false};
 	uint32_t _command_pub_count{0};
 	float _scan_yaw_deg{0.f};
@@ -281,10 +304,12 @@ private:
 	float _yaw_sp{NAN};
 	float _yaw_rate_sp{NAN};
 	hrt_abstime _prev_los_update{0};
+	hrt_abstime _last_accepted_los_receive_time{0};
 	hrt_abstime _last_track_setpoint_time{0};
 	bool _los_filter_initialized{false};
 
 	uORB::Subscription _dyt_target_sub{ORB_ID(dyt_target)};
+	uORB::Subscription _cooperative_status_sub{ORB_ID(cooperative_rendezvous_status)};
 	uORB::Subscription _follower_info_sub{ORB_ID(follower_info)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
@@ -309,6 +334,10 @@ private:
 		(ParamInt<px4::params::DYTG_ACT_BTN>) _param_act_btn,
 		(ParamInt<px4::params::DYTG_INT_AUX>) _param_int_aux,
 		(ParamInt<px4::params::DYTG_COOP_EN>) _param_coop_enable,
+		(ParamFloat<px4::params::DYTG_YAW_MIN>) _param_frame_yaw_min_deg,
+		(ParamFloat<px4::params::DYTG_YAW_MAX>) _param_frame_yaw_max_deg,
+		(ParamFloat<px4::params::DYTG_PIT_MIN>) _param_frame_pitch_min_deg,
+		(ParamFloat<px4::params::DYTG_PIT_MAX>) _param_frame_pitch_max_deg,
 		(ParamInt<px4::params::DYTG_GEO_EN>) _param_midcourse_geo_enable,
 		(ParamInt<px4::params::CRDZ_ACT_AUX>) _param_midcourse_act_aux,
 		(ParamInt<px4::params::CRDZ_ACT_BTN>) _param_midcourse_act_btn,
@@ -316,12 +345,11 @@ private:
 		(ParamFloat<px4::params::DYTG_TGT_TO>) _param_midcourse_target_timeout,
 		(ParamFloat<px4::params::DYTG_TGT_ALTOFF>) _param_midcourse_target_alt_offset,
 		(ParamFloat<px4::params::DYTG_MNT_PRED>) _param_midcourse_gimbal_prediction,
+		(ParamInt<px4::params::DYTG_MNT_MODE>) _param_midcourse_gimbal_mode,
 		(ParamFloat<px4::params::DYTG_STK_TK>) _param_stick_takeover,
 		(ParamInt<px4::params::DYTG_AUTO_EN>) _param_auto_enable,
-		(ParamInt<px4::params::DYTG_AUTO_N>) _param_auto_frames,
-		(ParamInt<px4::params::DYTG_LOCK_N>) _param_lock_frames,
-		(ParamInt<px4::params::DYTG_RELOCKN>) _param_relock_frames,
 		(ParamInt<px4::params::DYTG_WAITMS>) _param_wait_ms,
+		(ParamInt<px4::params::DYTG_LOCK_MS>) _param_lock_hold_ms,
 		(ParamInt<px4::params::DYTG_LOSTMS>) _param_lost_ms,
 		(ParamFloat<px4::params::DYTG_SC_YSPD>) _param_scan_yaw_speed,
 		(ParamFloat<px4::params::DYTG_SC_PSPD>) _param_scan_pitch_speed,
@@ -474,8 +502,8 @@ void DytGuidance::show_status()
 	PX4_INFO("midcourse button: %ld buttons=0x%04x",
 		 static_cast<long>(_param_midcourse_act_btn.get()), static_cast<unsigned>(_manual_control.buttons));
 	PX4_INFO("payload switch: %u", static_cast<unsigned>(_manual_switches.payload_power_switch));
-	PX4_INFO("auto activation: en=%ld streak=%d/%ld",
-		 static_cast<long>(_param_auto_enable.get()), _auto_lock_streak, static_cast<long>(_param_auto_frames.get()));
+	PX4_INFO("auto activation: en=%ld recognition hold=400 ms lock confirmation=400 ms",
+		 static_cast<long>(_param_auto_enable.get()));
 	PX4_INFO("manual valid: %u roll=%.2f pitch=%.2f yaw=%.2f sticks=%u",
 		 static_cast<unsigned>(_manual_control.valid),
 		 static_cast<double>(_manual_control.roll),
@@ -519,6 +547,7 @@ void DytGuidance::update_subscriptions()
 	_airspeed_validated_sub.update(&_airspeed_validated);
 	_manual_control_sub.update(&_manual_control);
 	_manual_switches_sub.update(&_manual_switches);
+	_cooperative_status_sub.update(&_cooperative_status);
 
 	dyt_target_s target{};
 
@@ -645,6 +674,7 @@ void DytGuidance::handle_new_target(const dyt_target_s &target)
 	}
 
 	push_observation(los_body, target.timestamp_sample, target.frame_dt_s);
+	_last_accepted_los_receive_time = target.timestamp_sample;
 }
 
 bool DytGuidance::build_los_body(const dyt_target_s &target, Vector3f &los_body) const
@@ -699,6 +729,7 @@ void DytGuidance::push_observation(const Vector3f &los_body, hrt_abstime sample_
 void DytGuidance::clear_observations()
 {
 	_observation_count = 0;
+	_last_accepted_los_receive_time = 0;
 
 	for (auto &observation : _observations) {
 		observation = LosObservation{};
@@ -782,8 +813,9 @@ void DytGuidance::capture_hold_setpoint()
 
 bool DytGuidance::target_locked() const
 {
-	return _have_target && _last_target.tracking_state == dyt_target_s::TRACKING_STATE_LOCKED
-	       && _last_target.target_valid && target_fresh() && target_geometry_valid(_last_target);
+	// Lock state is reported by the payload independently of whether its pixel miss
+	// distance has a calibrated conversion to angular LOS.
+	return _have_target && _last_target.tracking_state == dyt_target_s::TRACKING_STATE_LOCKED;
 }
 
 bool DytGuidance::target_geometry_valid(const dyt_target_s &target) const
@@ -808,11 +840,24 @@ bool DytGuidance::target_geometry_valid() const
 
 bool DytGuidance::target_hint_detected() const
 {
-	const bool bbox_valid = PX4_ISFINITE(_last_target.bbox_width_px) && PX4_ISFINITE(_last_target.bbox_height_px)
-				&& _last_target.bbox_width_px >= TARGET_MIN_BBOX_PX
-				&& _last_target.bbox_height_px >= TARGET_MIN_BBOX_PX;
+	// The payload's explicit recognition result is sufficient to start the lock
+	// window. Check only recognition-sample continuity here: tracking state and
+	// target geometry are validated after the payload reports locked.
+	if (!_have_target || !_last_target.auto_hint || _last_target.timestamp_sample == 0) {
+		return false;
+	}
 
-	return _have_target && _last_target.auto_hint && target_fresh() && bbox_valid;
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (now < _last_target.timestamp_sample) {
+		return false;
+	}
+
+	const float age_s = (now - _last_target.timestamp_sample) * 1e-6f;
+	const bool age_ok = age_s <= _param_max_age.get();
+	const bool gap_ok = _last_target.frame_dt_s <= 0.f || _last_target.frame_dt_s <= _param_max_gap.get();
+
+	return age_ok && gap_ok;
 }
 
 bool DytGuidance::target_fresh() const
@@ -854,6 +899,13 @@ bool DytGuidance::target_lock_candidate() const
 		return true;
 	}
 
+	// Payload recognition (servo status bytes 37-38, value 100) is only an
+	// automatic-lock hint. With automatic lock disabled it must not affect the
+	// manual switch workflow, which sends its own lock command on activation.
+	if (_param_auto_enable.get() <= 0) {
+		return false;
+	}
+
 	if (!_last_target.auto_hint) {
 		return false;
 	}
@@ -864,7 +916,12 @@ bool DytGuidance::target_lock_candidate() const
 
 bool DytGuidance::target_usable() const
 {
-	return target_locked() && target_fresh() && target_geometry_valid() && _observation_count > 0;
+	const hrt_abstime now = hrt_absolute_time();
+	const bool observation_fresh = _last_accepted_los_receive_time != 0
+				       && now >= _last_accepted_los_receive_time
+				       && (now - _last_accepted_los_receive_time) * 1e-6f <= _param_max_age.get();
+
+	return target_locked() && target_fresh() && target_geometry_valid() && _observation_count > 0 && observation_fresh;
 }
 
 bool DytGuidance::intercept_allowed() const
@@ -1275,11 +1332,12 @@ void DytGuidance::enter_state(TaskState new_state, uint8_t lost_reason)
 	_lost_reason = lost_reason;
 	_state_enter_time = hrt_absolute_time();
 
+	_lock_confirmation_start_time = 0;
+	_lock_confirmation_last_sample_time = 0;
+	_auto_recognition_start_time = 0;
+
 	if (new_state == TaskState::SearchWaitLock) {
-		_lock_streak = 0;
-		_relock_streak = 0;
 		_last_hint_lock_time = 0;
-		_auto_lock_streak = 0;
 		_auto_lock_last_sample_time = 0;
 		_midcourse_handoff_latched = _midcourse_handoff_latched || (_last_midcourse_target_time > 0);
 		_next_midcourse_point_time = 0;
@@ -1296,8 +1354,6 @@ void DytGuidance::enter_state(TaskState new_state, uint8_t lost_reason)
 		_next_midcourse_point_time = 0;
 		_last_midcourse_point_time = 0;
 		_midcourse_burst_remaining = 0;
-		_lost_streak = 0;
-		_auto_lock_streak = 0;
 		_auto_lock_last_sample_time = 0;
 		_candidate_lock_active = false;
 		_candidate_lock_start_time = 0;
@@ -1305,7 +1361,6 @@ void DytGuidance::enter_state(TaskState new_state, uint8_t lost_reason)
 		_candidate_ignored_sample_time = 0;
 		capture_track_handoff_velocity();
 	} else if (new_state == TaskState::LostHold) {
-		_relock_streak = 0;
 		_last_home_command_time = 0;
 		_last_retrigger_time = 0;
 		_last_hint_lock_time = 0;
@@ -1314,7 +1369,6 @@ void DytGuidance::enter_state(TaskState new_state, uint8_t lost_reason)
 		_midcourse_burst_remaining = 0;
 		_midcourse_yaw_deg = NAN;
 		_midcourse_pitch_deg = NAN;
-		_auto_lock_streak = 0;
 		_auto_lock_last_sample_time = 0;
 		_candidate_lock_active = false;
 		_candidate_lock_start_time = 0;
@@ -1347,7 +1401,6 @@ void DytGuidance::enter_state(TaskState new_state, uint8_t lost_reason)
 		_midcourse_burst_remaining = 0;
 		_midcourse_yaw_deg = NAN;
 		_midcourse_pitch_deg = NAN;
-		_auto_lock_streak = 0;
 		_auto_lock_last_sample_time = 0;
 		_candidate_lock_active = false;
 		_candidate_lock_start_time = 0;
@@ -1360,7 +1413,6 @@ void DytGuidance::enter_state(TaskState new_state, uint8_t lost_reason)
 		_next_midcourse_point_time = 0;
 		_last_midcourse_point_time = 0;
 		_midcourse_burst_remaining = 0;
-		_auto_lock_streak = 0;
 		_auto_lock_last_sample_time = 0;
 		_candidate_lock_active = false;
 		_candidate_lock_start_time = 0;
@@ -1371,8 +1423,9 @@ void DytGuidance::enter_state(TaskState new_state, uint8_t lost_reason)
 	}
 }
 
-void DytGuidance::activate_guidance(hrt_abstime now)
+bool DytGuidance::activate_guidance(hrt_abstime now)
 {
+	reset_automatic_session();
 	_payload_lock_seen = false;
 	_payload_lost_hold = false;
 	_payload_lost_enter_time = 0;
@@ -1382,19 +1435,34 @@ void DytGuidance::activate_guidance(hrt_abstime now)
 	_search_pause_until = 0;
 	_next_scan_time = 0;
 
-	if (!preconditions_ok()) {
-		PX4_WARN("DYT guidance preconditions not met");
-		return;
+	if (!preconditions_ok() || !terminal_entry_from_midcourse()) {
+		PX4_WARN("DYT terminal entry denied: active midcourse required");
+		return false;
 	}
 
 	clear_observations();
 	capture_hold_setpoint();
 	_requested_submode = dyt_guidance_status_s::SUBMODE_FOLLOW;
 	enter_state(TaskState::SearchWaitLock);
+	return true;
+}
+
+void DytGuidance::activate_guidance_and_request_lock(hrt_abstime now)
+{
+	_automatic_rearm_blocked = false;
+	_automatic_operator_exit_blocked = false;
+
+	if (activate_guidance(now) && automatic_lock_command_allowed()) {
+		// The switch edge authorizes tracking even before a tracking bbox is reported.
+		send_dyt_command(dyt_command_s::CMD_AUTO_LOCK, -100);
+		_last_hint_lock_time = now;
+		_last_retrigger_time = now;
+	}
 }
 
 void DytGuidance::deactivate_guidance(uint8_t lost_reason)
 {
+	reset_automatic_session();
 	_payload_lock_seen = false;
 	_payload_lost_hold = false;
 	_payload_lost_enter_time = 0;
@@ -1413,6 +1481,7 @@ void DytGuidance::deactivate_guidance(uint8_t lost_reason)
 
 void DytGuidance::abort_guidance(uint8_t lost_reason)
 {
+	reset_automatic_session();
 	send_dyt_geo_track_exit();
 	send_dyt_command(dyt_command_s::CMD_STOP_TRACK);
 	enter_state(TaskState::Abort, lost_reason);
@@ -1499,6 +1568,19 @@ void DytGuidance::send_dyt_command(uint8_t command, int16_t param_x, int16_t par
 	msg.param3 = param3;
 	msg.zoom_rate = zoom_rate;
 	_dyt_command_pub.publish(msg);
+
+	if (command == dyt_command_s::CMD_AUTO_LOCK || command == dyt_command_s::CMD_RETRIGGER ||
+	    command == dyt_command_s::CMD_TRACK_POINT) {
+		_last_lock_command_time = msg.timestamp;
+		// Tracking replaces geographic-follow mode. An exit command would cancel tracking.
+		_midcourse_geotrack_active = false;
+		_last_midcourse_geo_target_time = 0;
+		_last_midcourse_ownship_time = 0;
+
+	} else if (command == dyt_command_s::CMD_STOP_TRACK) {
+		_last_lock_command_time = 0;
+	}
+
 	_last_command = command;
 	_last_command_time = msg.timestamp;
 	++_command_pub_count;
@@ -1733,45 +1815,62 @@ bool DytGuidance::compute_midcourse_gimbal_angle(float &yaw_deg, float &pitch_de
 		return false;
 	}
 
+	const int32_t gimbal_mode = math::constrain(_param_midcourse_gimbal_mode.get(), int32_t{0}, int32_t{1});
+	float raw_yaw_deg = NAN;
+	float raw_pitch_deg = NAN;
 	const Dcmf body_to_ned(Quatf(_vehicle_attitude.q));
-	Vector3f los_body = body_to_ned.transpose() * los_ned;
+	const Vector3f los_body = body_to_ned.transpose() * los_ned;
 
 	if (!PX4_ISFINITE(los_body(0)) || !PX4_ISFINITE(los_body(1)) || !PX4_ISFINITE(los_body(2))
 	    || los_body.norm_squared() < 1e-4f) {
 		return false;
 	}
 
-	const Vector3f los_mount = rotate_body_los_to_mount(los_body);
+	// This payload has a body-vertical yaw joint followed by a pitch joint. Its
+	// camera points up at pitch zero and forward at pitch -90 deg. Applying the
+	// +90 deg installation pitch as a full Euler rotation puts the yaw axis on
+	// its side, coupling yaw and pitch and amplifying azimuth near forward view.
+	const float horizontal_norm = sqrtf(los_body(0) * los_body(0) + los_body(1) * los_body(1));
+	const float body_yaw = atan2f(los_body(1), los_body(0));
+	const float body_elevation = atan2f(-los_body(2), horizontal_norm);
+	const float mount_yaw_deg = _param_mount_enable.get() > 0 ? finite_param_deg(_param_mount_yaw_deg.get()) : 0.f;
+	const float mount_pitch_deg = _param_mount_enable.get() > 0 ? finite_param_deg(_param_mount_pitch_deg.get()) : 0.f;
 
-	if (!PX4_ISFINITE(los_mount(0)) || !PX4_ISFINITE(los_mount(1)) || !PX4_ISFINITE(los_mount(2))
-	    || los_mount.norm_squared() < 1e-4f) {
-		return false;
+	raw_yaw_deg = math::degrees(matrix::wrap_pi(body_yaw - math::radians(mount_yaw_deg)));
+
+	if (gimbal_mode == 1) {
+		float inertial_yaw_deg = NAN;
+
+		if (!compute_midcourse_inertial_angles(los_ned, inertial_yaw_deg, raw_pitch_deg)) {
+			return false;
+		}
+
+	} else {
+		raw_pitch_deg = math::degrees(body_elevation) - mount_pitch_deg;
 	}
-
-	const float yaw_body = atan2f(los_mount(1), los_mount(0));
-	const float horizontal_norm = sqrtf(los_mount(0) * los_mount(0) + los_mount(1) * los_mount(1));
-	const float pitch_body = atan2f(-los_mount(2), horizontal_norm);
 
 	const float yaw_sign = static_cast<float>(_param_yaw_sign.get()) >= 0.f ? 1.f : -1.f;
 	const float pitch_sign = static_cast<float>(_param_pitch_sign.get()) >= 0.f ? 1.f : -1.f;
 
-	yaw_deg = math::degrees((yaw_body - math::radians(_param_yaw_off_deg.get())) / yaw_sign);
-	pitch_deg = math::degrees((pitch_body - math::radians(_param_pitch_off_deg.get())) / pitch_sign);
+	yaw_deg = (raw_yaw_deg - _param_yaw_off_deg.get()) / yaw_sign;
+	pitch_deg = (raw_pitch_deg - _param_pitch_off_deg.get()) / pitch_sign;
 
 	return PX4_ISFINITE(yaw_deg) && PX4_ISFINITE(pitch_deg);
 }
 
-Vector3f DytGuidance::rotate_body_los_to_mount(const Vector3f &los_body) const
+bool DytGuidance::compute_midcourse_inertial_angles(const Vector3f &los_ned, float &yaw_deg, float &pitch_deg) const
 {
-	if (_param_mount_enable.get() <= 0) {
-		return los_body;
+	const float horizontal_norm = sqrtf(los_ned(0) * los_ned(0) + los_ned(1) * los_ned(1));
+
+	if (!PX4_ISFINITE(horizontal_norm) || horizontal_norm < 1e-3f ||
+	    !PX4_ISFINITE(los_ned(0)) || !PX4_ISFINITE(los_ned(1)) || !PX4_ISFINITE(los_ned(2))) {
+		return false;
 	}
 
-	const Dcmf mount_to_body(Eulerf(math::radians(finite_param_deg(_param_mount_roll_deg.get())),
-					math::radians(finite_param_deg(_param_mount_pitch_deg.get())),
-					math::radians(finite_param_deg(_param_mount_yaw_deg.get()))));
+	yaw_deg = math::degrees(atan2f(los_ned(1), los_ned(0)));
+	pitch_deg = math::degrees(atan2f(-los_ned(2), horizontal_norm));
 
-	return mount_to_body.transpose() * los_body;
+	return PX4_ISFINITE(yaw_deg) && PX4_ISFINITE(pitch_deg);
 }
 
 Vector3f DytGuidance::rotate_mount_los_to_body(const Vector3f &los_mount) const
@@ -1792,8 +1891,29 @@ float DytGuidance::finite_param_deg(float value) const
 	return PX4_ISFINITE(value) ? value : 0.f;
 }
 
+void DytGuidance::frame_angle_limits(float &yaw_min_deg, float &yaw_max_deg, float &pitch_min_deg,
+				     float &pitch_max_deg) const
+{
+	yaw_min_deg = math::constrain(finite_param_deg(_param_frame_yaw_min_deg.get()), -180.f, 0.f);
+	yaw_max_deg = math::constrain(finite_param_deg(_param_frame_yaw_max_deg.get()), 0.f, 180.f);
+	pitch_min_deg = math::constrain(finite_param_deg(_param_frame_pitch_min_deg.get()), -180.f, 0.f);
+	pitch_max_deg = math::constrain(finite_param_deg(_param_frame_pitch_max_deg.get()), 0.f, 180.f);
+}
+
 bool DytGuidance::update_midcourse_pointing(hrt_abstime now, bool force)
 {
+	if (_automatic_session_active && _state == TaskState::SearchWaitLock) {
+		return true;
+	}
+
+	const int32_t lock_hold_ms = math::constrain(_param_lock_hold_ms.get(), int32_t{100}, int32_t{10000});
+
+	if (_last_lock_command_time != 0 && now >= _last_lock_command_time &&
+	    now - _last_lock_command_time < static_cast<hrt_abstime>(lock_hold_ms) * 1000ULL) {
+		// Wait for payload feedback without replacing the lock request with pointing/home commands.
+		return true;
+	}
+
 	if (_param_midcourse_geo_enable.get() > 0) {
 		return update_midcourse_geo_tracking(now, force);
 	}
@@ -1805,7 +1925,10 @@ bool DytGuidance::update_midcourse_pointing(hrt_abstime now, bool force)
 bool DytGuidance::update_midcourse_geo_tracking(hrt_abstime now, bool force)
 {
 	if (target_locked()) {
-		send_dyt_geo_track_exit();
+		// The payload is already tracking; only clear geographic-follow bookkeeping.
+		_midcourse_geotrack_active = false;
+		_last_midcourse_geo_target_time = 0;
+		_last_midcourse_ownship_time = 0;
 		return false;
 	}
 
@@ -1832,8 +1955,13 @@ bool DytGuidance::update_midcourse_gimbal_pointing(hrt_abstime now, bool force)
 		return false;
 	}
 
-	yaw_deg = math::constrain(yaw_deg, FRAME_YAW_MIN_DEG, FRAME_YAW_MAX_DEG);
-	pitch_deg = math::constrain(pitch_deg, FRAME_PITCH_MIN_DEG, FRAME_PITCH_MAX_DEG);
+	float yaw_min_deg = NAN;
+	float yaw_max_deg = NAN;
+	float pitch_min_deg = NAN;
+	float pitch_max_deg = NAN;
+	frame_angle_limits(yaw_min_deg, yaw_max_deg, pitch_min_deg, pitch_max_deg);
+	yaw_deg = math::constrain(yaw_deg, yaw_min_deg, yaw_max_deg);
+	pitch_deg = math::constrain(pitch_deg, pitch_min_deg, pitch_max_deg);
 	const bool have_previous_angle = PX4_ISFINITE(_midcourse_yaw_deg) && PX4_ISFINITE(_midcourse_pitch_deg);
 	const float angle_delta_deg = have_previous_angle ?
 				      math::max(fabsf(yaw_deg - _midcourse_yaw_deg), fabsf(pitch_deg - _midcourse_pitch_deg)) :
@@ -1880,6 +2008,10 @@ bool DytGuidance::update_midcourse_gimbal_pointing(hrt_abstime now, bool force)
 
 void DytGuidance::retry_autolock(hrt_abstime now)
 {
+	if (!automatic_lock_command_allowed() || payload_lock_in_progress()) {
+		return;
+	}
+
 	const int32_t retry_ms = math::max(_param_retry_ms.get(), int32_t{100});
 	const hrt_abstime retry_interval = static_cast<hrt_abstime>(retry_ms) * 1000ULL;
 
@@ -1891,16 +2023,17 @@ void DytGuidance::retry_autolock(hrt_abstime now)
 
 bool DytGuidance::update_hint_autolock(hrt_abstime now)
 {
-	if (!target_lock_candidate()) {
+	if (!automatic_lock_command_allowed() || !target_lock_candidate()) {
 		return false;
 	}
 
 	// 已经 LOCKED 时，不重复发锁定命令，但告诉外层：目标存在，应该停止搜索
-	if (target_locked()) {
+	if (target_locked() || payload_lock_in_progress()) {
 		return true;
 	}
 
-	const int32_t retry_ms = math::max(_param_retry_ms.get(), int32_t{100});
+	const int32_t lock_hold_ms = math::constrain(_param_lock_hold_ms.get(), int32_t{100}, int32_t{10000});
+	const int32_t retry_ms = math::max(_param_retry_ms.get(), lock_hold_ms);
 	const hrt_abstime retry_interval = static_cast<hrt_abstime>(retry_ms) * 1000ULL;
 
 	if (_last_hint_lock_time == 0 || (now - _last_hint_lock_time) >= retry_interval) {
@@ -1916,15 +2049,22 @@ bool DytGuidance::update_hint_autolock(hrt_abstime now)
 
 void DytGuidance::update_auto_activation(hrt_abstime now)
 {
-	if (_param_auto_enable.get() <= 0 || _state != TaskState::Idle || !preconditions_ok()) {
-		_auto_lock_streak = 0;
+	const bool inactive_state = _state == TaskState::Idle || _state == TaskState::Abort;
+
+	if (_param_auto_enable.get() <= 0 || _automatic_rearm_blocked || !inactive_state || !preconditions_ok()
+	    || !terminal_entry_from_midcourse()) {
 		_auto_lock_last_sample_time = 0;
+		_auto_recognition_start_time = 0;
 		return;
 	}
 
-	if (!target_lock_candidate()) {
-		_auto_lock_streak = 0;
+	// Full automatic activation starts only from the payload recognition result:
+	// servo-status bytes 37-38 must report 100 for consecutive fresh frames.
+	// Bounding-box and LOS geometry are deliberately not prerequisites for sending
+	// the lock request; they are checked after the payload reports locked.
+	if (!target_hint_detected()) {
 		_auto_lock_last_sample_time = 0;
+		_auto_recognition_start_time = 0;
 		return;
 	}
 
@@ -1933,34 +2073,37 @@ void DytGuidance::update_auto_activation(hrt_abstime now)
 	}
 
 	_auto_lock_last_sample_time = _last_target.timestamp_sample;
-	++_auto_lock_streak;
 
-	const int32_t required_frames = math::constrain(_param_auto_frames.get(), int32_t{1}, int32_t{30});
+	if (_auto_recognition_start_time == 0 ||
+	    _last_target.timestamp_sample < _auto_recognition_start_time) {
+		_auto_recognition_start_time = _last_target.timestamp_sample;
+	}
 
-	if (_auto_lock_streak < required_frames) {
+	const bool recognition_held = _last_target.timestamp_sample - _auto_recognition_start_time
+				      >= AUTO_RECOGNITION_HOLD;
+
+	if (!recognition_held) {
 		return;
 	}
 
-	if (!target_locked()) {
-		send_dyt_command(dyt_command_s::CMD_AUTO_LOCK, -100);
+	if (activate_guidance(now)) {
+		_automatic_session_active = true;
+		_automatic_offboard_seen = false;
+		_automatic_initial_nav_intention = _vehicle_status.nav_state_user_intention;
+		_auto_lock_last_attempt_time = 0;
+		update_automatic_lock_attempts(now);
 	}
 
-	activate_guidance(now);
-
-	if (_state == TaskState::SearchWaitLock) {
-		_last_hint_lock_time = now;
-		_last_retrigger_time = now;
-	}
-
-	_auto_lock_streak = 0;
 	_auto_lock_last_sample_time = 0;
+	_auto_recognition_start_time = 0;
 }
 
 bool DytGuidance::handle_lock_candidate_or_timeout(hrt_abstime now)
 {
-	constexpr hrt_abstime LOCK_CANDIDATE_MAX_HOLD = 1200_ms;
 	constexpr hrt_abstime SCAN_UPDATE_DELAY = 100_ms;
 	constexpr hrt_abstime CANDIDATE_COOLDOWN = 800_ms;
+	const int32_t lock_hold_ms = math::constrain(_param_lock_hold_ms.get(), int32_t{100}, int32_t{10000});
+	const hrt_abstime lock_candidate_max_hold = static_cast<hrt_abstime>(lock_hold_ms) * 1000ULL;
 
 	if (!target_lock_candidate()) {
 		_candidate_lock_active = false;
@@ -1982,9 +2125,9 @@ bool DytGuidance::handle_lock_candidate_or_timeout(hrt_abstime now)
 
 	const hrt_abstime held_time = now - _candidate_lock_start_time;
 
-	if (held_time < LOCK_CANDIDATE_MAX_HOLD) {
+	if (held_time < lock_candidate_max_hold) {
 		update_hint_autolock(now);
-		_search_pause_until = now + LOCK_CANDIDATE_MAX_HOLD;
+		_search_pause_until = now + lock_candidate_max_hold;
 		_next_scan_time = now + SCAN_UPDATE_DELAY;
 		_scan_segment_target_deg = NAN;
 		return true;
@@ -2055,8 +2198,13 @@ void DytGuidance::advance_search_scan_area(float pitch_step_deg)
 
 void DytGuidance::send_scan_angle(float yaw_deg, float pitch_deg)
 {
-	const float yaw_limited = math::constrain(yaw_deg, FRAME_YAW_MIN_DEG, FRAME_YAW_MAX_DEG);
-	const float pitch_limited = math::constrain(pitch_deg, FRAME_PITCH_MIN_DEG, FRAME_PITCH_MAX_DEG);
+	float yaw_min_deg = NAN;
+	float yaw_max_deg = NAN;
+	float pitch_min_deg = NAN;
+	float pitch_max_deg = NAN;
+	frame_angle_limits(yaw_min_deg, yaw_max_deg, pitch_min_deg, pitch_max_deg);
+	const float yaw_limited = math::constrain(yaw_deg, yaw_min_deg, yaw_max_deg);
+	const float pitch_limited = math::constrain(pitch_deg, pitch_min_deg, pitch_max_deg);
 	const int16_t yaw_cmd = static_cast<int16_t>(roundf(yaw_limited * 100.f));
 	const int16_t pitch_cmd = static_cast<int16_t>(roundf(pitch_limited * 100.f));
 
@@ -2204,22 +2352,48 @@ void DytGuidance::Run()
 	const bool auto_activation_enabled = _param_auto_enable.get() > 0;
 	const bool intercept_request = _manual_intercept || aux_switch_active(_param_int_aux.get());
 
+	// An intentional operator exit remains blocked until automatic mode is toggled
+	// off, the vehicle is disarmed, or terminal guidance is explicitly requested.
+	if (!auto_activation_enabled || _vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+		_automatic_rearm_blocked = false;
+		_automatic_operator_exit_blocked = false;
+
+	} else if (_automatic_rearm_blocked && !_automatic_operator_exit_blocked && target_hint_cleared()) {
+		_automatic_rearm_blocked = false;
+	}
+
+	if (_automatic_session_active) {
+		const uint8_t user_intention = _vehicle_status.nav_state_user_intention;
+
+		if (offboard_control_active() || user_intention == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+			_automatic_offboard_seen = true;
+
+		} else if (vehicle_status_fresh() && !_vehicle_status.failsafe
+			   && ((_automatic_offboard_seen && user_intention != vehicle_status_s::NAVIGATION_STATE_OFFBOARD)
+			       || (!_automatic_offboard_seen && user_intention != _automatic_initial_nav_intention))) {
+			_automatic_rearm_blocked = true;
+			_automatic_operator_exit_blocked = true;
+			deactivate_guidance(dyt_guidance_status_s::LOST_REASON_MANUAL);
+		}
+	}
+
+	if (activation_request && !_prev_activation_request) {
+		activate_guidance_and_request_lock(now);
+	}
+
 	if (auto_activation_enabled) {
-		if (activation_request) {
-			update_auto_activation(now);
+		// Full automatic mode does not require an AUX switch or joystick button.
+		update_auto_activation(now);
 
-		} else {
-			_auto_lock_streak = 0;
-			_auto_lock_last_sample_time = 0;
-
-			if (_prev_activation_request) {
-				deactivate_guidance(dyt_guidance_status_s::LOST_REASON_PRECONDITION);
-			}
+		if (!activation_request && _prev_activation_request) {
+			_automatic_rearm_blocked = true;
+			_automatic_operator_exit_blocked = true;
+			deactivate_guidance(dyt_guidance_status_s::LOST_REASON_MANUAL);
 		}
 
 	} else {
-		if (activation_request && !_prev_activation_request) {
-			activate_guidance(now);
+		if (_automatic_session_active) {
+			deactivate_guidance(dyt_guidance_status_s::LOST_REASON_MANUAL);
 		}
 
 		if (!activation_request && _prev_activation_request) {
@@ -2257,25 +2431,32 @@ void DytGuidance::Run()
 		break;
 
 	case TaskState::SearchWaitLock:
-		if (target_usable()) {
-			++_lock_streak;
+		if (!update_automatic_lock_attempts(now)) {
+			break;
+		}
 
-			if (_lock_streak >= _param_lock_frames.get()) {
-				enter_state(TaskState::TrackFollow);
-			}
+		if (lock_confirmation_stable()) {
+			enter_state(TaskState::TrackFollow);
 
 		} else {
-			_lock_streak = 0;
-
 			if (target_lock_candidate()) {
-				update_hint_autolock(now);
-				_search_pause_until = now + 1200_ms;
+				const int32_t lock_hold_ms = math::constrain(_param_lock_hold_ms.get(), int32_t{100}, int32_t{10000});
+
+				if (!_automatic_session_active) {
+					update_hint_autolock(now);
+				}
+
+				_search_pause_until = now + static_cast<hrt_abstime>(lock_hold_ms) * 1000ULL;
 				_next_scan_time = now + 100_ms;
 			} else {
 				update_midcourse_pointing(now);
 			}
 
-			if ((now - _state_enter_time) > static_cast<hrt_abstime>(_param_wait_ms.get()) * 1000ULL) {
+			const int32_t wait_ms = math::max(_param_wait_ms.get(), _param_lock_hold_ms.get());
+			const bool keep_waiting_for_auto_lock = _automatic_session_active && target_lock_candidate();
+
+			if (!keep_waiting_for_auto_lock && now >= _state_enter_time &&
+			    (now - _state_enter_time) > static_cast<hrt_abstime>(wait_ms) * 1000ULL) {
 				enter_lost_hold(dyt_guidance_status_s::LOST_REASON_TIMEOUT);
 			}
 		}
@@ -2283,16 +2464,10 @@ void DytGuidance::Run()
 
 	case TaskState::TrackFollow:
 		if (!target_usable()) {
-			++_lost_streak;
-
-			if (_lost_streak >= _param_relock_frames.get()) {
-				enter_lost_hold(target_locked() ? dyt_guidance_status_s::LOST_REASON_STALE :
-						 dyt_guidance_status_s::LOST_REASON_TRACKING);
-			}
+			handle_tracking_loss(target_locked() ? dyt_guidance_status_s::LOST_REASON_STALE :
+					     dyt_guidance_status_s::LOST_REASON_TRACKING);
 
 		} else {
-			_lost_streak = 0;
-
 			if (intercept_request && intercept_allowed()) {
 				enter_state(TaskState::TrackIntercept);
 			}
@@ -2301,16 +2476,10 @@ void DytGuidance::Run()
 
 	case TaskState::TrackIntercept:
 		if (!target_usable()) {
-			++_lost_streak;
-
-			if (_lost_streak >= _param_relock_frames.get()) {
-				enter_lost_hold(target_locked() ? dyt_guidance_status_s::LOST_REASON_STALE :
-						 dyt_guidance_status_s::LOST_REASON_TRACKING);
-			}
+			handle_tracking_loss(target_locked() ? dyt_guidance_status_s::LOST_REASON_STALE :
+					     dyt_guidance_status_s::LOST_REASON_TRACKING);
 
 		} else {
-			_lost_streak = 0;
-
 			if (!intercept_request || !intercept_allowed()) {
 				enter_state(TaskState::TrackFollow);
 			}
@@ -2319,15 +2488,12 @@ void DytGuidance::Run()
 
 	case TaskState::LostHold:
 		if (target_usable()) {
-			++_relock_streak;
+			enter_state(intercept_request && intercept_allowed() ? TaskState::TrackIntercept : TaskState::TrackFollow);
 
-			if (_relock_streak >= _param_relock_frames.get()) {
-				enter_state(intercept_request && intercept_allowed() ? TaskState::TrackIntercept : TaskState::TrackFollow);
-			}
+		} else if (auto_activation_enabled && !target_locked()) {
+			handle_tracking_loss(dyt_guidance_status_s::LOST_REASON_TRACKING);
 
 		} else {
-			_relock_streak = 0;
-
 			const int32_t center_ms = math::max(_param_center_ms.get(), int32_t{0});
 			const hrt_abstime center_delay = static_cast<hrt_abstime>(center_ms) * 1000ULL;
 			const hrt_abstime lost_timeout = static_cast<hrt_abstime>(math::max(_param_lost_ms.get(), int32_t{0})) * 1000ULL;
@@ -2338,7 +2504,7 @@ void DytGuidance::Run()
 				abort_guidance(_lost_reason);
 			} else if (center_done) {
 				// Search scan is disabled: use shared target position to point the seeker, then lock when visible.
-				if (target_lock_candidate()) {
+				if (!auto_activation_enabled && target_lock_candidate()) {
 					update_hint_autolock(now);
 				} else {
 					update_midcourse_pointing(now);
@@ -2470,6 +2636,137 @@ and publishes offboard trajectory setpoints for follow and intercept behaviors.
 	PRINT_MODULE_USAGE_COMMAND("retrigger");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
+}
+
+bool DytGuidance::payload_lock_in_progress() const
+{
+	// Mode 0x06 means the payload has accepted the lock request. Do not send another
+	// 0x06 while it is still establishing the tracking-success flag.
+	return _have_target && _last_target.servo_mode == PAYLOAD_MODE_TRACK && target_fresh();
+}
+
+bool DytGuidance::lock_confirmation_stable()
+{
+	// A transient 0x06/0x01 reply must not end the lock-request window. The payload
+	// can briefly report that state while a lock is still being established.
+	if (!target_usable() || _last_target.timestamp_sample == 0) {
+		_lock_confirmation_start_time = 0;
+		_lock_confirmation_last_sample_time = 0;
+		return false;
+	}
+
+	const hrt_abstime sample_time = _last_target.timestamp_sample;
+
+	if (_lock_confirmation_last_sample_time != sample_time) {
+		if (_lock_confirmation_last_sample_time == 0 || sample_time < _lock_confirmation_last_sample_time) {
+			_lock_confirmation_start_time = sample_time;
+		}
+
+		_lock_confirmation_last_sample_time = sample_time;
+	}
+
+	return sample_time >= _lock_confirmation_start_time
+	       && sample_time - _lock_confirmation_start_time >= AUTO_LOCK_CONFIRM_HOLD;
+}
+
+bool DytGuidance::target_hint_cleared() const
+{
+	// Rearm only on an explicit fresh servo-status result of 00 00. A stale
+	// sample or a UART timeout must not look like recognition disappearing.
+	return _have_target && !_last_target.auto_hint && _last_target.status1 == 0 && target_fresh();
+}
+
+bool DytGuidance::cooperative_status_fresh() const
+{
+	return _cooperative_status.timestamp != 0 &&
+	       hrt_elapsed_time(&_cooperative_status.timestamp) < 300_ms;
+}
+
+bool DytGuidance::terminal_entry_from_midcourse() const
+{
+	// Terminal guidance may only take over directly from a confirmed, active
+	// midcourse controller. A stale status left over after a flight-mode change,
+	// or a target seen immediately after arming, must never authorize takeover.
+	return cooperative_status_fresh() && _cooperative_status.active
+	       && _cooperative_status.target_valid && offboard_control_active();
+}
+
+bool DytGuidance::vehicle_status_fresh() const
+{
+	return _vehicle_status.timestamp != 0 && _vehicle_status.timestamp <= hrt_absolute_time()
+	       && hrt_elapsed_time(&_vehicle_status.timestamp) < 1_s;
+}
+
+bool DytGuidance::offboard_control_active() const
+{
+	return vehicle_status_fresh() && !_vehicle_status.failsafe
+	       && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
+	       && _vehicle_status.nav_state_user_intention == vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+}
+
+void DytGuidance::reset_automatic_session()
+{
+	_automatic_session_active = false;
+	_automatic_offboard_seen = false;
+	_automatic_initial_nav_intention = UINT8_MAX;
+	_auto_lock_last_attempt_time = 0;
+}
+
+bool DytGuidance::update_automatic_lock_attempts(hrt_abstime now)
+{
+	if (!_automatic_session_active || _state != TaskState::SearchWaitLock) {
+		return true;
+	}
+
+	if (target_locked()) {
+		return true;
+	}
+
+	const int32_t lock_hold_ms = math::constrain(_param_lock_hold_ms.get(), int32_t{100}, int32_t{10000});
+	const hrt_abstime lock_hold = static_cast<hrt_abstime>(lock_hold_ms) * 1000ULL;
+
+	if (now >= _state_enter_time && now - _state_enter_time >= lock_hold) {
+		// Restart detection after this lock window. Persistent 00 64 recognition is
+		// allowed to qualify for a new attempt after another continuous 0.4 s.
+		_automatic_rearm_blocked = false;
+		_automatic_operator_exit_blocked = false;
+		deactivate_guidance(dyt_guidance_status_s::LOST_REASON_TIMEOUT);
+		send_dyt_command(dyt_command_s::CMD_DETECTION_START);
+		return false;
+	}
+
+	if (payload_lock_in_progress() || !automatic_lock_command_allowed()) {
+		return true;
+	}
+
+	if (_auto_lock_last_attempt_time != 0 && now >= _auto_lock_last_attempt_time
+	    && now - _auto_lock_last_attempt_time < AUTO_LOCK_RETRY_INTERVAL) {
+		return true;
+	}
+
+	send_dyt_command(dyt_command_s::CMD_AUTO_LOCK, -100);
+	_auto_lock_last_attempt_time = now;
+	_last_hint_lock_time = now;
+	_last_retrigger_time = now;
+	return true;
+}
+
+bool DytGuidance::automatic_lock_command_allowed() const
+{
+	return _param_auto_enable.get() <= 0 || terminal_entry_from_midcourse();
+}
+
+void DytGuidance::handle_tracking_loss(uint8_t lost_reason)
+{
+	if (_param_auto_enable.get() > 0 && !target_locked()) {
+		_automatic_rearm_blocked = false;
+		_automatic_operator_exit_blocked = false;
+		deactivate_guidance(lost_reason);
+		send_dyt_command(dyt_command_s::CMD_DETECTION_START);
+		return;
+	}
+
+	enter_lost_hold(lost_reason);
 }
 
 extern "C" __EXPORT int dyt_guidance_main(int argc, char *argv[])

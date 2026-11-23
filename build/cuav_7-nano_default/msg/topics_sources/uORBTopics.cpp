@@ -60,6 +60,7 @@
 #include <uORB/topics/config_overrides.h>
 #include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/cooperative_position.h>
+#include <uORB/topics/cooperative_rendezvous_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/dataman_request.h>
 #include <uORB/topics/dataman_response.h>
@@ -315,6 +316,7 @@ const constexpr struct orb_metadata *const uorb_topics_list[ORB_TOPICS_COUNT] = 
 	ORB_ID(config_overrides_request), 
 	ORB_ID(control_allocator_status), 
 	ORB_ID(cooperative_position), 
+	ORB_ID(cooperative_rendezvous_status), 
 	ORB_ID(cpuload), 
 	ORB_ID(dataman_request), 
 	ORB_ID(dataman_response), 

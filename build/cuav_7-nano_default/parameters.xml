@@ -5065,6 +5065,20 @@ the DYT frame-angle command.</long_desc>
       <unit>deg</unit>
       <decimal>1</decimal>
     </parameter>
+    <parameter name="DYT_IR_H" default="720" type="INT32">
+      <short_desc>Infrared tracking image height</short_desc>
+      <long_desc>Height of the infrared image used by the tracker. The installed infrared
+tracker output is configured as 1280 x 720 pixels.</long_desc>
+      <min>16</min>
+      <max>8192</max>
+    </parameter>
+    <parameter name="DYT_IR_W" default="1280" type="INT32">
+      <short_desc>Infrared tracking image width</short_desc>
+      <long_desc>Width of the infrared image used by the tracker. The Tweety V2.0.9.6
+tracking parameter table specifies an infrared range up to 1280 pixels.</long_desc>
+      <min>16</min>
+      <max>8192</max>
+    </parameter>
     <parameter name="DYT_LOG_MS" default="0" type="INT32">
       <short_desc>DYT debug log period</short_desc>
       <long_desc>Set to 0 to disable periodic decoded-frame logs. When greater than 0,
@@ -5073,6 +5087,16 @@ which can be read from the NSH `dmesg` command.</long_desc>
       <min>0</min>
       <max>5000</max>
       <unit>ms</unit>
+    </parameter>
+    <parameter name="DYT_LOS_SC" default="0." type="FLOAT">
+      <short_desc>Tweety V2 manual pixel-angle scale</short_desc>
+      <long_desc>Optional fixed conversion from one tracking miss-distance pixel to degrees.
+Set to 0 to derive the conversion from the live horizontal field of view and
+the configured image dimensions. A positive value overrides that dynamic
+conversion and should only be used for a fixed, calibrated zoom setting.</long_desc>
+      <min>0</min>
+      <max>1</max>
+      <decimal>6</decimal>
     </parameter>
     <parameter name="DYT_RAWLOG" default="0" type="INT32" boolean="true">
       <short_desc>DYT raw frame logging</short_desc>
@@ -5091,6 +5115,28 @@ replies are printed whenever they are received.</long_desc>
       <min>50</min>
       <max>5000</max>
       <unit>ms</unit>
+    </parameter>
+    <parameter name="DYT_TRK_VAL" default="1" type="INT32">
+      <short_desc>Tweety V2 locked tracking value</short_desc>
+      <long_desc>Raw value in byte 32 of the V2 servo status frame that represents a valid
+locked target. The protocol document defines the field as a char but does
+not list its enumeration.</long_desc>
+      <min>0</min>
+      <max>255</max>
+    </parameter>
+    <parameter name="DYT_VIS_H" default="1080" type="INT32">
+      <short_desc>Visible tracking image height</short_desc>
+      <long_desc>Height of the visible-light image used by the tracker. The Tweety V2.0.9.6
+tracking parameter table specifies a visible-light range up to 1080 pixels.</long_desc>
+      <min>16</min>
+      <max>8192</max>
+    </parameter>
+    <parameter name="DYT_VIS_W" default="1920" type="INT32">
+      <short_desc>Visible tracking image width</short_desc>
+      <long_desc>Width of the visible-light image used by the tracker. The Tweety V2.0.9.6
+tracking parameter table specifies a visible-light range up to 1920 pixels.</long_desc>
+      <min>16</min>
+      <max>8192</max>
     </parameter>
   </group>
   <group name="DYT Guidance">
@@ -5124,14 +5170,16 @@ enabled.</long_desc>
     </parameter>
     <parameter name="DYTG_AUTO_EN" default="0" type="INT32" boolean="true">
       <short_desc>Enable automatic guidance activation from detected target hints</short_desc>
-      <long_desc>When enabled, the activation AUX/button/payload switch gates automatic
-tracking: switch on, then guidance arms its tracking workflow after a target
-lock candidate is visible for DYTG_AUTO_N consecutive frames.</long_desc>
-    </parameter>
-    <parameter name="DYTG_AUTO_N" default="5" type="INT32">
-      <short_desc>Consecutive candidate frames for automatic guidance activation</short_desc>
-      <min>1</min>
-      <max>30</max>
+      <long_desc>When enabled, full automatic locking is active and no
+activation AUX/button is required. After recognition value
+100 remains continuously valid for 0.4 seconds, guidance starts a
+DYTG_LOCK_MS lock window and sends a 0x06 request every 500 ms until the
+payload reports that tracking acquisition is in progress. A failed window
+ends tracking, restarts detection, and allows persistent recognition to
+qualify for another attempt after a new 0.4-second hold.
+Selecting another flight mode exits the automatic terminal-guidance session.
+An explicit activation AUX/button rising edge continues to request tracking
+directly, independently of payload recognition.</long_desc>
     </parameter>
     <parameter name="DYTG_COOP_EN" default="0" type="INT32" boolean="true">
       <short_desc>Cooperative rendezvous handoff enable</short_desc>
@@ -5227,10 +5275,14 @@ blend.</long_desc>
       <max>10.0</max>
       <decimal>2</decimal>
     </parameter>
-    <parameter name="DYTG_LOCK_N" default="4" type="INT32">
-      <short_desc>Consecutive lock frames to enter tracking</short_desc>
-      <min>1</min>
-      <max>20</max>
+    <parameter name="DYTG_LOCK_MS" default="2000" type="INT32">
+      <short_desc>Lock request protection time</short_desc>
+      <long_desc>Time reserved for the payload to complete a 0x06 lock request. During this
+interval, pointing or search commands do not replace the tracking request.
+The search-wait timeout is never shorter than this value.</long_desc>
+      <min>100</min>
+      <max>10000</max>
+      <unit>ms</unit>
     </parameter>
     <parameter name="DYTG_LOSTMS" default="240000" type="INT32">
       <short_desc>Lost hold/search timeout</short_desc>
@@ -5376,11 +5428,6 @@ frame. Applied when DYTG_MNT_EN is set.</long_desc>
         <value code="-1">Negative</value>
         <value code="1">Positive</value>
       </values>
-    </parameter>
-    <parameter name="DYTG_RELOCKN" default="3" type="INT32">
-      <short_desc>Consecutive lock frames to recover from lost hold</short_desc>
-      <min>1</min>
-      <max>20</max>
     </parameter>
     <parameter name="DYTG_ROFF" default="0." type="FLOAT">
       <short_desc>Gimbal roll offset</short_desc>

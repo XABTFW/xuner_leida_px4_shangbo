@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::ekf2_timestamps) == 47, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::ekf2_timestamps) == 48, "ORB_ID index mismatch");
 ORB_DEFINE(ekf2_timestamps, struct ekf2_timestamps_s, 22, 3825526785u, static_cast<orb_id_size_t>(ORB_ID::ekf2_timestamps), 1);
 
 

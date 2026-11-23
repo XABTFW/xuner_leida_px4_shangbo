@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_gps_status) == 78, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::estimator_gps_status) == 79, "ORB_ID index mismatch");
 ORB_DEFINE(estimator_gps_status, struct estimator_gps_status_s, 40, 2428886473u, static_cast<orb_id_size_t>(ORB_ID::estimator_gps_status), 1);
 
 

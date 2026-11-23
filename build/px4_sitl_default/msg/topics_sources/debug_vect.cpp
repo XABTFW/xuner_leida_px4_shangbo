@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::debug_vect) == 39, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::debug_vect) == 40, "ORB_ID index mismatch");
 ORB_DEFINE(debug_vect, struct debug_vect_s, 30, 785601647u, static_cast<orb_id_size_t>(ORB_ID::debug_vect), 1);
 
 

@@ -45,7 +45,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-static_assert(static_cast<orb_id_size_t>(ORB_ID::follow_target) == 105, "ORB_ID index mismatch");
+static_assert(static_cast<orb_id_size_t>(ORB_ID::follow_target) == 106, "ORB_ID index mismatch");
 ORB_DEFINE(follow_target, struct follow_target_s, 41, 3832326234u, static_cast<orb_id_size_t>(ORB_ID::follow_target), 1);
 
 

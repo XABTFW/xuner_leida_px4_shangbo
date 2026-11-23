@@ -14,7 +14,6 @@ param set-default USB_MAV_MODE 5
 safety_button start
 param set-default DYTG_ACT_AUX -1
 param set-default DYTG_ACT_BTN 2
-param set-default DYTG_AUTO_N 3
 param set-default DYTG_COOP_EN 1
 param set-default DYTG_CTRMS 400
 param set-default DYTG_DLY_MS 120
@@ -27,7 +26,6 @@ param set-default DYTG_KA_FOL 0.5
 param set-default DYTG_KA_INT 2
 param set-default DYTG_KV_FOL 0.800000012
 param set-default DYTG_KV_INT 1.20000005
-param set-default DYTG_LOCK_N 2
 param set-default DYTG_LOSTMS 240000
 param set-default DYTG_LPF_A 0.699999988
 param set-default DYTG_LXSIGN 1
@@ -45,7 +43,6 @@ param set-default DYTG_N_INT 3.5
 param set-default DYTG_POFF 0
 param set-default DYTG_PREDMAX 0.0299999993
 param set-default DYTG_PSIGN 1
-param set-default DYTG_RELOCKN 20
 param set-default DYTG_ROFF 0
 param set-default DYTG_RSIGN 1
 param set-default DYTG_RTRYMS 500
@@ -246,3 +243,5 @@ param set-default COM_RC_LOSS_T 1
 param set-default IMU_GYRO_RATEMAX 800
 param set-default PWM_MAIN_TIM0 -4
 param set-default RTL_DESCEND_ALT 10
+param set-default DYTG_AUTO_EN 1
+param set-default DYTG_LOCK_MS 2000
