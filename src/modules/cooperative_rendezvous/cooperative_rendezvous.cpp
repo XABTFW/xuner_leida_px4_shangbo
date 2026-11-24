@@ -181,11 +181,15 @@ bool CooperativeRendezvous::target_state_local(const vehicle_local_position_s &l
 {
 	if (!_map_ref_initialized || _last_target_time == 0) {
 		reset_target_filter();
+		_target_forward_xy.zero();
+		_target_direction_valid = false;
 		return false;
 	}
 
 	if ((hrt_absolute_time() - _last_target_time) > static_cast<hrt_abstime>(_options.target_timeout_s * 1_s)) {
 		reset_target_filter();
+		_target_forward_xy.zero();
+		_target_direction_valid = false;
 		return false;
 	}
 
@@ -195,6 +199,8 @@ bool CooperativeRendezvous::target_state_local(const vehicle_local_position_s &l
 
 	if (!PX4_ISFINITE(x) || !PX4_ISFINITE(y)) {
 		reset_target_filter();
+		_target_forward_xy.zero();
+		_target_direction_valid = false;
 		return false;
 	}
 
@@ -213,36 +219,51 @@ bool CooperativeRendezvous::target_state_local(const vehicle_local_position_s &l
 		return PX4_ISFINITE(target_position(2));
 	}
 
-	float offset_x = _options.target_offset(0);
-	float offset_y = _options.target_offset(1);
+	float forward_offset = _options.target_offset(0);
 
 	if (_param_xy_offset_enable.get() > 0) {
-		const float x_offset = _param_x_offset.get();
-		const float y_offset = _param_y_offset.get();
+		const float configured_forward_offset = _param_forward_offset.get();
 
-		offset_x = PX4_ISFINITE(x_offset) ? x_offset : 0.f;
-		offset_y = PX4_ISFINITE(y_offset) ? y_offset : 0.f;
+		forward_offset = PX4_ISFINITE(configured_forward_offset) ? configured_forward_offset : 0.f;
 
 	} else {
 		const float target_distance = _param_dist.get();
 
 		if (PX4_ISFINITE(target_distance) && target_distance >= 0.f) {
-			const float offset_norm = sqrtf(offset_x * offset_x + offset_y * offset_y);
-
-			if (offset_norm > 0.001f) {
-				const float scale = target_distance / offset_norm;
-				offset_x *= scale;
-				offset_y *= scale;
-
-			} else {
-				offset_x = -target_distance;
-				offset_y = 0.f;
-			}
+			forward_offset = -target_distance;
 		}
 	}
 
-	target_position(0) += offset_x;
-	target_position(1) += offset_y;
+	// The LOS-relative waypoint has a stable equilibrium only behind the target with no lateral offset.
+	forward_offset = PX4_ISFINITE(forward_offset) ? math::min(forward_offset, 0.f) : 0.f;
+
+	const matrix::Vector2f target_los_xy(target_position(0) - local_pos.x, target_position(1) - local_pos.y);
+	const float target_horizontal_distance = target_los_xy.norm();
+	matrix::Vector2f target_forward{};
+	bool target_direction_valid = false;
+
+	if (target_los_xy.isAllFinite() && PX4_ISFINITE(target_horizontal_distance) && target_horizontal_distance > 0.5f) {
+		// Define the horizontal offset frame from the rendezvous aircraft toward the target.
+		// Hold the last valid direction near zero horizontal separation to avoid a 180-degree axis flip.
+		target_forward = target_los_xy / target_horizontal_distance;
+		target_direction_valid = target_forward.isAllFinite();
+
+		if (target_direction_valid) {
+			_target_forward_xy = target_forward;
+			_target_direction_valid = true;
+		}
+
+	} else if (_target_direction_valid) {
+		target_forward = _target_forward_xy;
+		target_direction_valid = true;
+	}
+
+	if (target_direction_valid) {
+		const matrix::Vector2f horizontal_offset = target_forward * forward_offset;
+		target_position(0) += horizontal_offset(0);
+		target_position(1) += horizontal_offset(1);
+	}
+
 	target_position(2) += _options.target_offset(2) - _param_alt_diff.get();
 
 	return PX4_ISFINITE(target_position(2));
@@ -883,6 +904,11 @@ void CooperativeRendezvous::Run()
 						 && status.arming_state == vehicle_status_s::ARMING_STATE_ARMED));
 	publish_status(status, local_position_valid(local_pos), controlling_vehicle);
 
+	if (!controlling_vehicle) {
+		_target_forward_xy.zero();
+		_target_direction_valid = false;
+	}
+
 	if (!local_position_valid(local_pos)) {
 		return;
 	}
@@ -938,15 +964,17 @@ int CooperativeRendezvous::print_status()
 		break;
 	}
 
-	PX4_INFO("running: vehicle=%" PRIu32 " role=%s target=%" PRIu32 " direct=%d offset=(%.1f %.1f %.1f) xy_en=%ld xy=(%.1f %.1f) dist=%.1f app_spd=%.1f slow=%.1f vslew=%.1f tpos_tc=%.2f tvel_tc=%.2f tpos_jmp=%.1f alt_diff=%.1f",
+	PX4_INFO("running: vehicle=%" PRIu32 " role=%s target=%" PRIu32
+		 " direct=%d offset=(%.1f %.1f %.1f) xy_en=%ld fb=%.1f lr_ignored=%.1f"
+		 " dist=%.1f app_spd=%.1f slow=%.1f vslew=%.1f tpos_tc=%.2f tvel_tc=%.2f tpos_jmp=%.1f alt_diff=%.1f",
 		 _vehicle_id, role, _options.target_id,
 		 static_cast<int>(_options.direct_target),
 		 (double)_options.target_offset(0),
 		 (double)_options.target_offset(1),
 		 (double)_options.target_offset(2),
 		 static_cast<long>(_param_xy_offset_enable.get()),
-		 (double)_param_x_offset.get(),
-		 (double)_param_y_offset.get(),
+		 (double)_param_forward_offset.get(),
+		 (double)_param_right_offset.get(),
 		 (double)_param_dist.get(),
 		 (double)_param_app_speed.get(),
 		 (double)_param_slow_radius.get(),
@@ -1132,8 +1160,8 @@ an incoming radar target position when -G is enabled.
 	PRINT_MODULE_USAGE_PARAM_STRING('r', "auto", "auto|broadcast|rendezvous", "Role selection", true);
 	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 255, "Target MAV_SYS_ID for rendezvous", true);
 	PRINT_MODULE_USAGE_PARAM_FLOAT('d', 5.f, 0.f, 100.f, "Distance behind target when x offset is not set", true);
-	PRINT_MODULE_USAGE_PARAM_FLOAT('x', -5.f, -100.f, 100.f, "Target NED x offset", true);
-	PRINT_MODULE_USAGE_PARAM_FLOAT('y', 0.f, -100.f, 100.f, "Target NED y offset", true);
+	PRINT_MODULE_USAGE_PARAM_FLOAT('x', -5.f, -100.f, 0.f, "Target LOS offset (negative: toward this aircraft)", true);
+	PRINT_MODULE_USAGE_PARAM_FLOAT('y', 0.f, -100.f, 100.f, "Ignored; lateral LOS offset is fixed to zero", true);
 	PRINT_MODULE_USAGE_PARAM_FLOAT('z', 0.f, -50.f, 50.f, "Target NED z offset", true);
 	PRINT_MODULE_USAGE_PARAM_FLOAT('v', 3.f, 0.5f, MAX_HORIZONTAL_SPEED_M_S, "Maximum approach speed", true);
 	PRINT_MODULE_USAGE_PARAM_FLOAT('T', 5.f, 0.5f, 30.f, "Target timeout", true);

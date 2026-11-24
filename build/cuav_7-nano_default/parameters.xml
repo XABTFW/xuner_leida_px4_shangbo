@@ -5359,6 +5359,18 @@ which already matches PX4 NED Z sign.</long_desc>
 frame before computing midcourse frame-angle commands from target position.
 Keep disabled to use the legacy aircraft-body angle calculation.</long_desc>
     </parameter>
+    <parameter name="DYTG_MNT_MODE" default="1" type="INT32">
+      <short_desc>Midcourse gimbal angle mode</short_desc>
+      <long_desc>Selects how PX4 computes midcourse frame-angle commands. Mode 0 keeps the
+legacy body/mount-relative yaw and pitch. Mode 1 keeps the legacy
+body/mount-relative yaw but uses inertial/horizon LOS elevation for pitch.</long_desc>
+      <min>0</min>
+      <max>1</max>
+      <values>
+        <value code="0">Body frame</value>
+        <value code="1">Inertial pitch only</value>
+      </values>
+    </parameter>
     <parameter name="DYTG_MNT_P" default="0." type="FLOAT">
       <short_desc>Midcourse mount pitch</short_desc>
       <long_desc>Pitch angle of the gimbal installation frame relative to the aircraft body
@@ -5408,6 +5420,22 @@ frame. Applied when DYTG_MNT_EN is set.</long_desc>
       <min>0.5</min>
       <max>10.0</max>
       <decimal>2</decimal>
+    </parameter>
+    <parameter name="DYTG_PIT_MAX" default="40." type="FLOAT">
+      <short_desc>Gimbal frame pitch maximum</short_desc>
+      <long_desc>Maximum pitch frame angle that DYT guidance may command.</long_desc>
+      <min>0</min>
+      <max>180</max>
+      <unit>deg</unit>
+      <decimal>1</decimal>
+    </parameter>
+    <parameter name="DYTG_PIT_MIN" default="-90." type="FLOAT">
+      <short_desc>Gimbal frame pitch minimum</short_desc>
+      <long_desc>Minimum pitch frame angle that DYT guidance may command.</long_desc>
+      <min>-180</min>
+      <max>0</max>
+      <unit>deg</unit>
+      <decimal>1</decimal>
     </parameter>
     <parameter name="DYTG_POFF" default="0." type="FLOAT">
       <short_desc>Gimbal pitch offset</short_desc>
@@ -5627,6 +5655,22 @@ rotates at this rate.</long_desc>
       <min>0.01</min>
       <max>1.0</max>
       <decimal>2</decimal>
+    </parameter>
+    <parameter name="DYTG_YAW_MAX" default="40." type="FLOAT">
+      <short_desc>Gimbal frame yaw maximum</short_desc>
+      <long_desc>Maximum yaw frame angle that DYT guidance may command.</long_desc>
+      <min>0</min>
+      <max>180</max>
+      <unit>deg</unit>
+      <decimal>1</decimal>
+    </parameter>
+    <parameter name="DYTG_YAW_MIN" default="-40." type="FLOAT">
+      <short_desc>Gimbal frame yaw minimum</short_desc>
+      <long_desc>Minimum yaw frame angle that DYT guidance may command.</long_desc>
+      <min>-180</min>
+      <max>0</max>
+      <unit>deg</unit>
+      <decimal>1</decimal>
     </parameter>
     <parameter name="DYTG_YOFF" default="0." type="FLOAT">
       <short_desc>Gimbal yaw offset</short_desc>

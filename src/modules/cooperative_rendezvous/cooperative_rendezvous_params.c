@@ -34,7 +34,7 @@ PARAM_DEFINE_INT32(CRDZ_ACT_BTN, -1);
  *
  * Desired horizontal distance for the rendezvous aircraft relative to the
  * target aircraft. Set to 0 to track the target position without a horizontal
- * offset. Negative values keep the startup offset from -d/-x/-y.
+ * offset. Negative values keep the startup offset from -d/-x.
  *
  * @unit m
  * @min -1
@@ -47,10 +47,10 @@ PARAM_DEFINE_FLOAT(CRDZ_DIST, 0.f);
 /**
  * Enable explicit horizontal offsets
  *
- * When enabled, CRDZ_X_OFF and CRDZ_Y_OFF directly define the target-relative
- * NED horizontal offset. CRDZ_DIST is ignored for horizontal offset generation.
- * Keep disabled to use the legacy CRDZ_DIST scaling of the startup -x/-y
- * offset direction.
+ * When enabled, CRDZ_FB_OFF defines the longitudinal offset in the horizontal
+ * line-of-sight frame from the rendezvous aircraft toward the target. Lateral
+ * offset is always zero. CRDZ_DIST is ignored for horizontal offset generation.
+ * Keep disabled to use CRDZ_DIST as a distance toward the rendezvous aircraft.
  *
  * @boolean
  * @group Cooperative Rendezvous
@@ -58,24 +58,25 @@ PARAM_DEFINE_FLOAT(CRDZ_DIST, 0.f);
 PARAM_DEFINE_INT32(CRDZ_XY_OFF_EN, 0);
 
 /**
- * Target NED X offset
+ * Target forward/back offset
  *
- * Exact NED X offset from the target aircraft used when CRDZ_XY_OFF_EN is set.
- * Positive is North in the local NED frame.
+ * Longitudinal offset from the target aircraft used when CRDZ_XY_OFF_EN is set.
+ * Negative values point from the target back toward the rendezvous aircraft.
+ * Positive values are constrained to zero by the controller.
  *
  * @unit m
  * @min -100
- * @max 100
+ * @max 0
  * @decimal 1
  * @group Cooperative Rendezvous
  */
-PARAM_DEFINE_FLOAT(CRDZ_X_OFF, -5.f);
+PARAM_DEFINE_FLOAT(CRDZ_FB_OFF, -5.f);
 
 /**
- * Target NED Y offset
+ * Target left/right offset
  *
- * Exact NED Y offset from the target aircraft used when CRDZ_XY_OFF_EN is set.
- * Positive is East in the local NED frame.
+ * Retained for parameter compatibility. The controller always constrains the
+ * lateral line-of-sight offset to zero.
  *
  * @unit m
  * @min -100
@@ -83,7 +84,7 @@ PARAM_DEFINE_FLOAT(CRDZ_X_OFF, -5.f);
  * @decimal 1
  * @group Cooperative Rendezvous
  */
-PARAM_DEFINE_FLOAT(CRDZ_Y_OFF, 0.f);
+PARAM_DEFINE_FLOAT(CRDZ_LR_OFF, 0.f);
 
 /**
  * Approach speed toward target position

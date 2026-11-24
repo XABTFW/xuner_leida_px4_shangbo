@@ -594,12 +594,15 @@ enum class params : uint16_t {
 	DYTG_MAXV,
 	DYTG_MAXYAWR,
 	DYTG_MNT_EN,
+	DYTG_MNT_MODE,
 	DYTG_MNT_P,
 	DYTG_MNT_PRED,
 	DYTG_MNT_R,
 	DYTG_MNT_Y,
 	DYTG_N_FOL,
 	DYTG_N_INT,
+	DYTG_PIT_MAX,
+	DYTG_PIT_MIN,
 	DYTG_POFF,
 	DYTG_PREDMAX,
 	DYTG_PSIGN,
@@ -632,6 +635,8 @@ enum class params : uint16_t {
 	DYTG_XYSLEW,
 	DYTG_YAWLIM,
 	DYTG_YAWLOS,
+	DYTG_YAW_MAX,
+	DYTG_YAW_MIN,
 	DYTG_YOFF,
 	DYTG_YSIGN,
 	DYTG_ZSCALE,
@@ -4708,6 +4713,11 @@ static constexpr param_info_s parameters[] = {
 	},
 
 	{
+		.name = "DYTG_MNT_MODE",
+		.val = { .i = 1},
+	},
+
+	{
 		.name = "DYTG_MNT_P",
 		.val = { .f = 0. },
 	},
@@ -4735,6 +4745,16 @@ static constexpr param_info_s parameters[] = {
 	{
 		.name = "DYTG_N_INT",
 		.val = { .f = 3.5 },
+	},
+
+	{
+		.name = "DYTG_PIT_MAX",
+		.val = { .f = 40. },
+	},
+
+	{
+		.name = "DYTG_PIT_MIN",
+		.val = { .f = -90. },
 	},
 
 	{
@@ -4895,6 +4915,16 @@ static constexpr param_info_s parameters[] = {
 	{
 		.name = "DYTG_YAWLOS",
 		.val = { .f = 0.20 },
+	},
+
+	{
+		.name = "DYTG_YAW_MAX",
+		.val = { .f = 40. },
+	},
+
+	{
+		.name = "DYTG_YAW_MIN",
+		.val = { .f = -40. },
 	},
 
 	{
@@ -11307,6 +11337,9 @@ static constexpr param_type_t parameters_type[] = {
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_INT32,
+	PARAM_TYPE_INT32,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
@@ -11340,6 +11373,8 @@ static constexpr param_type_t parameters_type[] = {
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_INT32,
+	PARAM_TYPE_FLOAT,
+	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,
 	PARAM_TYPE_FLOAT,

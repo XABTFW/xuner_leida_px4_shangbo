@@ -3,8 +3,8 @@
 /* Do not edit! */
 #pragma once
 
-#define PX4_GIT_VERSION_STR "3b9647ac1567eb6675359a049fc3bdd0ff500832"
-#define PX4_GIT_VERSION_BINARY 0x3b9647ac1567eb66
+#define PX4_GIT_VERSION_STR "8e7ea46efbf71c44661e532d5dadb427ff99bd3d"
+#define PX4_GIT_VERSION_BINARY 0x8e7ea46efbf71c44
 #define PX4_GIT_TAG_STR "v0.0.0"
 #define PX4_GIT_BRANCH_NAME "xuner_leida_px4_qgc_qichuangxinyuan"
 
